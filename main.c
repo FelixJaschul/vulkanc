@@ -6,8 +6,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define TITLE  "vulkan"
 #define WIDTH  800
 #define HEIGHT 600
+
+#define VK !glfwWindowShouldClose(state.glfw.win)
 
 typedef struct
 {
@@ -27,40 +30,41 @@ typedef struct
 
 state_t state;
 
-void initWindow()
+void VK_START()
 {
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    state.glfw.win = glfwCreateWindow(WIDTH, HEIGHT, "vulkan", NULL, NULL);
+    state.glfw.win = glfwCreateWindow(WIDTH, HEIGHT, TITLE, NULL, NULL);
 }
 
 void initVulkan()
 {
 }
 
-void mainLoop()
+void VK_FRAME()
 {
-    while (!glfwWindowShouldClose(state.glfw.win))
-    {
-        glfwPollEvents();
-    }
+    glfwPollEvents();
 }
 
-void cleanup()
+void VK_END()
 {
     glfwDestroyWindow(state.glfw.win);
     glfwTerminate();
 }
 
+void VK_RESIZE()
+{
+
+}
+
 int main()
 {
-    initWindow();
-    initVulkan();
-    mainLoop();
-    cleanup();
+    VK_START();
+    while (VK) VK_FRAME();
+    VK_END();
 
     return 0;
 }
