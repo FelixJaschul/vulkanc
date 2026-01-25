@@ -1,7 +1,9 @@
 all: vert frag
 
+NAME=shad
+
 vert:
-	glslangValidator -V shad.vert -o shad.vert.spv
+	glslangValidator -V $(NAME).vert -o $(NAME).vert.spv
 
 frag:
-	glslangValidator -V shad.frag -o shad.frag.spv
+	glslangValidator -V $(NAME).frag -o $(NAME).frag.spv
