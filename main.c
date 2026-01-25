@@ -42,6 +42,7 @@ typedef struct {
 typedef struct
 {
     float x, y, z;
+    float yaw, pitch;
 } cam_t;
 
 typedef struct
@@ -434,6 +435,8 @@ void VK_START()
         state.cam.x = 0.0f;
         state.cam.y = 0.0f;
         state.cam.z = -3.0f;
+        state.cam.yaw   = 0.0f;
+        state.cam.pitch = 0.0f;
     }
 
     ASSERT(glfwInit(), "Window initialization failed");
@@ -968,11 +971,33 @@ void VK_FRAME()
     glfwPollEvents();
 
     {
-        const float cam_speed = 0.01f;
-        if (glfwGetKey(state.glfw.win, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(state.glfw.win, GLFW_KEY_UP) == GLFW_PRESS) state.cam.z += cam_speed;
-        if (glfwGetKey(state.glfw.win, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(state.glfw.win, GLFW_KEY_DOWN) == GLFW_PRESS) state.cam.z -= cam_speed;
-        if (glfwGetKey(state.glfw.win, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(state.glfw.win, GLFW_KEY_LEFT) == GLFW_PRESS) state.cam.x -= cam_speed;
-        if (glfwGetKey(state.glfw.win, GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(state.glfw.win, GLFW_KEY_RIGHT) == GLFW_PRESS) state.cam.x += cam_speed;
+        const float cam_speed = 0.05f;
+        const float rot_speed = 0.02f;
+
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_LEFT) == GLFW_PRESS) state.cam.yaw -= rot_speed;
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_RIGHT) == GLFW_PRESS) state.cam.yaw += rot_speed;
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_UP) == GLFW_PRESS) state.cam.pitch += rot_speed;
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_DOWN) == GLFW_PRESS) state.cam.pitch -= rot_speed;
+
+        const vec3 forward = {sinf(state.cam.yaw), 0.0f, cosf(state.cam.yaw)};
+        const vec3 right = {cosf(state.cam.yaw), 0.0f, -sinf(state.cam.yaw)};
+
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_W) == GLFW_PRESS) {
+            state.cam.x += forward[0] * cam_speed;
+            state.cam.z += forward[2] * cam_speed;
+        }
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_S) == GLFW_PRESS) {
+            state.cam.x -= forward[0] * cam_speed;
+            state.cam.z -= forward[2] * cam_speed;
+        }
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_D) == GLFW_PRESS) {
+            state.cam.x += right[0] * cam_speed;
+            state.cam.z += right[2] * cam_speed;
+        }
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_A) == GLFW_PRESS) {
+            state.cam.x -= right[0] * cam_speed;
+            state.cam.z -= right[2] * cam_speed;
+        }
     }
 
     vkWaitForFences(state.v.device, 1, &state.v.inFlightFence, VK_TRUE, UINT64_MAX);
@@ -1011,6 +1036,8 @@ void VK_FRAME()
 
     mat4 view, proj, vp;
     glm_mat4_identity(view);
+    glm_rotate(view, state.cam.pitch, (vec3){1.0f, 0.0f, 0.0f});
+    glm_rotate(view, state.cam.yaw, (vec3){0.0f, 1.0f, 0.0f});
     glm_translate(view, (vec3){-state.cam.x, -state.cam.y, state.cam.z});
     glm_perspective(glm_rad(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f, proj);
     glm_mat4_mul(proj, view, vp);
