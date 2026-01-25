@@ -958,11 +958,6 @@ void VK_FRAME()
     vkAcquireNextImageKHR(state.v.device, state.v.swapchain, UINT64_MAX,
                           state.v.imageAvailableSemaphore, VK_NULL_HANDLE, &image_index);
 
-    begin_text_rendering();
-
-    DISPLAY("ABCDEFGHIJKLMNOPQRSTUVWXYZ_;<=>?", -0.9f, -0.9f);
-    DISPLAY("abcdefghijklmnopqrstuvwxyz:", -0.9f, -0.8f);
-
     if (text_vertex_count > 0) {
         void* data;
         vkMapMemory(state.v.device, state.v.vertexBufferMemory, 0, sizeof(vertex_t) * text_vertex_count, 0, &data);
@@ -1082,7 +1077,13 @@ void VK_END()
 int main()
 {
     VK_START();
-    while (VK) VK_FRAME();
+    while (VK)
+    {
+        VK_FRAME();
+        begin_text_rendering();
+        DISPLAY("ABCDEFGHIJKLMNOPQRSTUVWXYZ_;<=>?", -0.9f, -0.9f);
+        DISPLAY("abcdefghijklmnopqrstuvwxyz:", -0.9f, -0.8f);
+    }
     VK_END();
 
     return 0;

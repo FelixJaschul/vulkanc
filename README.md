@@ -2,7 +2,7 @@
 
 #### THIS IS IT:
 
-![Alt text](GAME.png)
+![Alt text](res/GAME.png)
 
 #### TL:DR
 you run it with make lol. Good luck
