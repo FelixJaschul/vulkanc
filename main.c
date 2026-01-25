@@ -323,19 +323,18 @@ void draw_char(const char c, const float x, const float y, const float char_widt
 
     glyph_uv_t g = glyphs[(uint8_t)c];
 
-    float u0 = g.x * atlas_char_width;
-    float v0 = g.y * atlas_char_height;
-    float u1 = u0 + atlas_char_width;
-    float v1 = v0 + atlas_char_height;
+    const float u0 = g.x * atlas_char_width;
+    const float v0 = g.y * atlas_char_height;
+    const float u1 = u0 + atlas_char_width;
+    const float v1 = v0 + atlas_char_height;
 
-    text_vertices[text_vertex_count++] = (vertex_t){ x,             y,              u0, v0 };
-    text_vertices[text_vertex_count++] = (vertex_t){ x + char_width, y,              u1, v0 };
+    text_vertices[text_vertex_count++] = (vertex_t){ x, y, u0, v0 };
+    text_vertices[text_vertex_count++] = (vertex_t){ x + char_width, y, u1, v0 };
     text_vertices[text_vertex_count++] = (vertex_t){ x + char_width, y + char_height, u1, v1 };
 
-    text_vertices[text_vertex_count++] = (vertex_t){ x,             y,              u0, v0 };
+    text_vertices[text_vertex_count++] = (vertex_t){ x, y, u0, v0 };
     text_vertices[text_vertex_count++] = (vertex_t){ x + char_width, y + char_height, u1, v1 };
-    text_vertices[text_vertex_count++] = (vertex_t){ x,             y + char_height, u0, v1 };
-
+    text_vertices[text_vertex_count++] = (vertex_t){ x, y + char_height, u0, v1 };
 }
 
 void draw_string(const char* str, const float x, const float y) {
