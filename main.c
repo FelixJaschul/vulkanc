@@ -354,11 +354,8 @@ static void VK_START(void)
         glyphs['y'] = (glyph_uv_t){9, 7};
         glyphs['z'] = (glyph_uv_t){10, 7};
 
-        state.cam.x = 0.0f;
-        state.cam.y = 0.0f;
-        state.cam.z = -3.0f;
-        state.cam.yaw = 0.0f;
-        state.cam.pitch = 0.0f;
+        state.cam.x = 0.0f; state.cam.y = 0.0f; state.cam.z = -3.0f;
+        state.cam.yaw = 0.0f; state.cam.pitch = 0.0f;
     }
 
     ASSERT(glfwInit(), "Window initialization failed");
