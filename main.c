@@ -41,6 +41,11 @@ typedef struct {
 
 typedef struct
 {
+    float x, y, z;
+} cam_t;
+
+typedef struct
+{
     VkInstance instance;
     VkPhysicalDevice physicalDevice;
     VkDevice device;
@@ -89,6 +94,7 @@ typedef struct
 {
     glfw_t glfw;
     vulkan_t v;
+    cam_t cam;
 } state_t;
 
 state_t state;
@@ -314,7 +320,7 @@ typedef struct {
 
 static glyph_uv_t glyphs[128];
 
-void draw_char(const char c, const float x, const float y, const float char_width, const float char_height) {
+void draw_char(const char c, float x, float y, const float char_width, const float char_height) {
     if (text_vertex_count + 6 > MAX_TEXT_VERTICES) return;
 
     // Character dimensions (16x16 grid in texture)
@@ -425,6 +431,9 @@ void VK_START()
         glyphs['y'] = (glyph_uv_t){  9, 7 };
         glyphs['z'] = (glyph_uv_t){ 10, 7 };
 
+        state.cam.x = 0.0f;
+        state.cam.y = 0.0f;
+        state.cam.z = -3.0f;
     }
 
     ASSERT(glfwInit(), "Window initialization failed");
@@ -893,10 +902,18 @@ void VK_START()
         .pVertexAttributeDescriptions = tri_attrs
     };
 
+    VkPushConstantRange push_constant_range = {
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        .offset = 0,
+        .size = sizeof(float) * 16
+    };
+
     VkPipelineLayoutCreateInfo tri_layout_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .setLayoutCount = 0,
-        .pSetLayouts = NULL
+        .pSetLayouts = NULL,
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges = &push_constant_range
     };
     VK_ASSERT(vkCreatePipelineLayout(state.v.device, &tri_layout_info, NULL, &state.v.trianglePipelineLayout), "create triangle pipeline layout");
 
@@ -950,12 +967,19 @@ void VK_FRAME()
 {
     glfwPollEvents();
 
+    {
+        const float cam_speed = 0.01f;
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(state.glfw.win, GLFW_KEY_UP) == GLFW_PRESS) state.cam.z += cam_speed;
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(state.glfw.win, GLFW_KEY_DOWN) == GLFW_PRESS) state.cam.z -= cam_speed;
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(state.glfw.win, GLFW_KEY_LEFT) == GLFW_PRESS) state.cam.x -= cam_speed;
+        if (glfwGetKey(state.glfw.win, GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(state.glfw.win, GLFW_KEY_RIGHT) == GLFW_PRESS) state.cam.x += cam_speed;
+    }
+
     vkWaitForFences(state.v.device, 1, &state.v.inFlightFence, VK_TRUE, UINT64_MAX);
     vkResetFences(state.v.device, 1, &state.v.inFlightFence);
 
     uint32_t image_index;
-    vkAcquireNextImageKHR(state.v.device, state.v.swapchain, UINT64_MAX,
-                          state.v.imageAvailableSemaphore, VK_NULL_HANDLE, &image_index);
+    vkAcquireNextImageKHR(state.v.device, state.v.swapchain, UINT64_MAX, state.v.imageAvailableSemaphore, VK_NULL_HANDLE, &image_index);
 
     if (text_vertex_count > 0) {
         void* data;
@@ -984,14 +1008,22 @@ void VK_FRAME()
     vkCmdBeginRenderPass(state.v.commandBuffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
     vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.trianglePipeline);
+
+    mat4 view, proj, vp;
+    glm_mat4_identity(view);
+    glm_translate(view, (vec3){-state.cam.x, -state.cam.y, state.cam.z});
+    glm_perspective(glm_rad(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f, proj);
+    glm_mat4_mul(proj, view, vp);
+
+    vkCmdPushConstants(state.v.commandBuffer, state.v.trianglePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(float) * 16, vp);
+
     const VkDeviceSize tri_offsets[] = {0};
     vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.triangleVertexBuffer, tri_offsets);
     vkCmdDraw(state.v.commandBuffer, 3, 1, 0, 0);
 
     vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.pipeline);
 
-    vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            state.v.pipelineLayout, 0, 1, &state.v.descriptorSet, 0, NULL);
+    vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.pipelineLayout, 0, 1, &state.v.descriptorSet, 0, NULL);
 
     const VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.vertexBuffer, offsets);
