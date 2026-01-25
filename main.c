@@ -123,20 +123,21 @@ typedef struct
     glfw_t glfw;
     vulkan_t v;
     cam_t cam;
+
+    // Test stuff idk bout this
+    double last_time;
+    double last_frame_time;
+    int frame_count;
+    double fps;
+    float delta_time;
+
+    // Text rendering state
+#define MAX_TEXT_VERTICES 10000
+    vertex_t text_vertices[MAX_TEXT_VERTICES];
+    uint32_t text_vertex_count;
 } state_t;
 
 state_t state;
-
-double last_time = 0.0;
-double last_frame_time = 0.0;
-int frame_count = 0;
-double fps = 0.0;
-float delta_time = 0.0f;
-
-// Text rendering state
-#define MAX_TEXT_VERTICES 10000
-vertex_t text_vertices[MAX_TEXT_VERTICES];
-uint32_t text_vertex_count = 0;
 
 // Fwd dec
 static uint32_t find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags properties);
@@ -223,7 +224,7 @@ static glyph_uv_t glyphs[128];
 
 static void draw_char(const char c, const float x, const float y, const float char_width, const float char_height)
 {
-    if (text_vertex_count + 6 > MAX_TEXT_VERTICES) return;
+    if (state.text_vertex_count + 6 > MAX_TEXT_VERTICES) return;
 
     const float atlas_char_width = 1.0f / 16.0f;
     const float atlas_char_height = 1.0f / 16.0f;
@@ -237,12 +238,12 @@ static void draw_char(const char c, const float x, const float y, const float ch
     const float z = 0.0f;
 
     // Use the correct order for triangle formation
-    text_vertices[text_vertex_count++] = (vertex_t){{x, y, z}, {u0, v0}, {1.0f, 1.0f, 1.0f, 1.0f}};
-    text_vertices[text_vertex_count++] = (vertex_t){{x + char_width, y, z}, {u1, v0}, {1.0f, 1.0f, 1.0f, 1.0f}};
-    text_vertices[text_vertex_count++] = (vertex_t){{x + char_width, y + char_height, z}, {u1, v1}, {1.0f, 1.0f, 1.0f, 1.0f}};
-    text_vertices[text_vertex_count++] = (vertex_t){{x, y, z}, {u0, v0}, {1.0f, 1.0f, 1.0f, 1.0f}};
-    text_vertices[text_vertex_count++] = (vertex_t){{x + char_width, y + char_height, z}, {u1, v1}, {1.0f, 1.0f, 1.0f, 1.0f}};
-    text_vertices[text_vertex_count++] = (vertex_t){{x, y + char_height, z}, {u0, v1}, {1.0f, 1.0f, 1.0f, 1.0f}};
+    state.text_vertices[state.text_vertex_count++] = (vertex_t){{x, y, z}, {u0, v0}, {1.0f, 1.0f, 1.0f, 1.0f}};
+    state.text_vertices[state.text_vertex_count++] = (vertex_t){{x + char_width, y, z}, {u1, v0}, {1.0f, 1.0f, 1.0f, 1.0f}};
+    state.text_vertices[state.text_vertex_count++] = (vertex_t){{x + char_width, y + char_height, z}, {u1, v1}, {1.0f, 1.0f, 1.0f, 1.0f}};
+    state.text_vertices[state.text_vertex_count++] = (vertex_t){{x, y, z}, {u0, v0}, {1.0f, 1.0f, 1.0f, 1.0f}};
+    state.text_vertices[state.text_vertex_count++] = (vertex_t){{x + char_width, y + char_height, z}, {u1, v1}, {1.0f, 1.0f, 1.0f, 1.0f}};
+    state.text_vertices[state.text_vertex_count++] = (vertex_t){{x, y + char_height, z}, {u0, v1}, {1.0f, 1.0f, 1.0f, 1.0f}};
 }
 
 static void draw_string(const char *str, const float x, const float y)
@@ -272,7 +273,7 @@ static void draw_string(const char *str, const float x, const float y)
 
 static void begin_text_rendering(void)
 {
-    text_vertex_count = 0;
+    state.text_vertex_count = 0;
 }
 
 VkDescriptorSet font_descriptor_set;
@@ -639,23 +640,23 @@ static void VK_FRAME(void)
 {
     {
         const double current_time = glfwGetTime();
-        delta_time = (float) (current_time - last_frame_time);
-        last_frame_time = current_time;
+        state.delta_time = (float) (current_time - state.last_frame_time);
+        state.last_frame_time = current_time;
 
-        frame_count++;
-        if (current_time - last_time >= 1.0)
+        state.frame_count++;
+        if (current_time - state.last_time >= 1.0)
         {
-            fps = frame_count / (current_time - last_time);
-            frame_count = 0;
-            last_time = current_time;
+            state.fps = state.frame_count / (current_time - state.last_time);
+            state.frame_count = 0;
+            state.last_time = current_time;
         }
     }
 
     glfwPollEvents();
 
     {
-        const float cam_speed = 3.0f * delta_time;
-        const float rot_speed = 1.2f * delta_time;
+        const float cam_speed = 3.0f * state.delta_time;
+        const float rot_speed = 1.2f * state.delta_time;
 
         if (glfwGetKey(state.glfw.win, GLFW_KEY_LEFT) == GLFW_PRESS) state.cam.yaw -= rot_speed;
         if (glfwGetKey(state.glfw.win, GLFW_KEY_RIGHT) == GLFW_PRESS) state.cam.yaw += rot_speed;
@@ -693,13 +694,13 @@ static void VK_FRAME(void)
     vkAcquireNextImageKHR(state.v.device, state.v.swapchain, UINT64_MAX, state.v.imageAvailableSemaphore,
                           VK_NULL_HANDLE, &image_index);
 
-    if (text_vertex_count > 0)
+    if (state.text_vertex_count > 0)
     {
         void *data;
-        vkMapMemory(state.v.device, state.v.text_buffer.memory, 0, sizeof(vertex_t) * text_vertex_count, 0, &data);
-        memcpy(data, text_vertices, sizeof(vertex_t) * text_vertex_count);
+        vkMapMemory(state.v.device, state.v.text_buffer.memory, 0, sizeof(vertex_t) * state.text_vertex_count, 0, &data);
+        memcpy(data, state.text_vertices, sizeof(vertex_t) * state.text_vertex_count);
         vkUnmapMemory(state.v.device, state.v.text_buffer.memory);
-        state.v.text_buffer.vertex_count = text_vertex_count;
+        state.v.text_buffer.vertex_count = state.text_vertex_count;
     }
 
     vkResetCommandBuffer(state.v.commandBuffer, 0);
@@ -838,7 +839,7 @@ int main(void)
     {
         VK_FRAME();
         begin_text_rendering();
-        DISPLAYF(-0.9f, 0.9f, "FPS:%.0f", fps);
+        DISPLAYF(-0.9f, 0.9f, "FPS:%.0f", state.fps);
         DISPLAYF(-0.9f, 0.8f, "X:%.2f Y:%.2f Z:%.2f", state.cam.x, state.cam.y, state.cam.z);
         DISPLAY("Vulkan Demo", -0.9f, -0.9f);
     }
