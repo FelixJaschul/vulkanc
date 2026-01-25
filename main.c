@@ -5,6 +5,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <../ext/stb_image.h>
 
+#define TINY_OBJ_LOADER_H_IMPLEMENTATION
+#include <../ext/tiny_obj_loader.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -760,7 +763,6 @@ void VK_START()
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         &state.v.vertexBufferMemory);
 
-    // Create triangle vertex buffer
     const float triangle_vertices[] = {
         -1.0f, -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,  // Bottom-left - Red
          1.0f, -1.0f,  0.0f, 1.0f, 0.0f, 1.0f,  // Bottom-right - Green
@@ -995,7 +997,7 @@ void VK_START()
 void VK_FRAME()
 {
     {
-        double current_time = glfwGetTime();
+        const double current_time = glfwGetTime();
         delta_time = (float)(current_time - last_frame_time);
         last_frame_time = current_time;
 
