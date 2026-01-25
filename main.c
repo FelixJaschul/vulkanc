@@ -100,6 +100,12 @@ typedef struct
 
 state_t state;
 
+double last_time = 0.0;
+double last_frame_time = 0.0;
+int frame_count = 0;
+double fps = 0.0;
+float delta_time = 0.0f;
+
 // Text rendering state
 #define MAX_TEXT_VERTICES 10000
 vertex_t text_vertices[MAX_TEXT_VERTICES];
@@ -361,6 +367,13 @@ void draw_string(const char* str, const float x, const float y) {
 
 #define DISPLAY(str, x, y) draw_string(str, x, y)
 
+#define DISPLAYF(x, y, fmt, ...) do { \
+    char _display_buf[64]; \
+    snprintf(_display_buf, sizeof(_display_buf), (fmt), ##__VA_ARGS__); \
+    DISPLAY(_display_buf, (x), (y)); \
+} while (0)
+
+
 void begin_text_rendering() {
     text_vertex_count = 0;
 }
@@ -374,6 +387,19 @@ void VK_START()
         glyphs['='] = (glyph_uv_t){ 13, 3 };
         glyphs['>'] = (glyph_uv_t){ 14, 3 };
         glyphs['?'] = (glyph_uv_t){ 15, 3 };
+
+        glyphs['0'] = (glyph_uv_t){  0, 3 };
+        glyphs['1'] = (glyph_uv_t){  1, 3 };
+        glyphs['2'] = (glyph_uv_t){  2, 3 };
+        glyphs['3'] = (glyph_uv_t){  3, 3 };
+        glyphs['4'] = (glyph_uv_t){  4, 3 };
+        glyphs['5'] = (glyph_uv_t){  5, 3 };
+        glyphs['6'] = (glyph_uv_t){  6, 3 };
+        glyphs['7'] = (glyph_uv_t){  7, 3 };
+        glyphs['8'] = (glyph_uv_t){  8, 3 };
+        glyphs['9'] = (glyph_uv_t){  9, 3 };
+        glyphs[' '] = (glyph_uv_t){  0, 2 };
+        glyphs['.'] = (glyph_uv_t){ 14, 2 };
 
         glyphs['A'] = (glyph_uv_t){  1, 4 };
         glyphs['B'] = (glyph_uv_t){  2, 4 };
@@ -593,7 +619,7 @@ void VK_START()
 
         swapchain_info.preTransform = capabilities.currentTransform;
         swapchain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        swapchain_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+        swapchain_info.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;;
         swapchain_info.clipped = VK_TRUE;
         swapchain_info.oldSwapchain = VK_NULL_HANDLE;
 
@@ -968,19 +994,32 @@ void VK_START()
 
 void VK_FRAME()
 {
+    {
+        double current_time = glfwGetTime();
+        delta_time = (float)(current_time - last_frame_time);
+        last_frame_time = current_time;
+
+        frame_count++;
+        if (current_time - last_time >= 1.0) {
+            fps = frame_count / (current_time - last_time);
+            frame_count = 0;
+            last_time = current_time;
+        }
+    }
+
     glfwPollEvents();
 
     {
-        const float cam_speed = 0.05f;
-        const float rot_speed = 0.02f;
+        const float cam_speed = 3.0f * delta_time;
+        const float rot_speed = 1.2f * delta_time;
 
         if (glfwGetKey(state.glfw.win, GLFW_KEY_LEFT) == GLFW_PRESS) state.cam.yaw -= rot_speed;
         if (glfwGetKey(state.glfw.win, GLFW_KEY_RIGHT) == GLFW_PRESS) state.cam.yaw += rot_speed;
         if (glfwGetKey(state.glfw.win, GLFW_KEY_UP) == GLFW_PRESS) state.cam.pitch += rot_speed;
         if (glfwGetKey(state.glfw.win, GLFW_KEY_DOWN) == GLFW_PRESS) state.cam.pitch -= rot_speed;
 
-        const vec3 forward = {sinf(state.cam.yaw), 0.0f, cosf(state.cam.yaw)};
-        const vec3 right = {cosf(state.cam.yaw), 0.0f, -sinf(state.cam.yaw)};
+        const vec3 forward = {sinf(state.cam.yaw), 0.0f,  cosf(state.cam.yaw)};
+        const vec3 right   = {cosf(state.cam.yaw), 0.0f, -sinf(state.cam.yaw)};
 
         if (glfwGetKey(state.glfw.win, GLFW_KEY_W) == GLFW_PRESS) {
             state.cam.x += forward[0] * cam_speed;
@@ -1139,6 +1178,8 @@ int main()
     {
         VK_FRAME();
         begin_text_rendering();
+        DISPLAYF(-0.9f, 0.9f, "FPS:%.0f", fps);
+        DISPLAYF(-0.9f, 0.8f, "X:%.2f Y:%.2f Z:%.2f", state.cam.x, state.cam.y, state.cam.z);
         DISPLAY("ABCDEFGHIJKLMNOPQRSTUVWXYZ_;<=>?", -0.9f, -0.9f);
         DISPLAY("abcdefghijklmnopqrstuvwxyz:", -0.9f, -0.8f);
     }
