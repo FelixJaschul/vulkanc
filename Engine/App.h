@@ -27,6 +27,11 @@ void RUN();
 #define TITLE  "vulkan"
 #define WIDTH  800
 #define HEIGHT 600
+#define SIZE   0.5f
+#define TINT {0.67f, 0.89f, 0.67f, 1.0f}
+
+#define CAM 3.0f
+#define ROT 1.2f
 
 #define VK_ASSERT(result, msg) do { \
     if ((result) != VK_SUCCESS) { \
@@ -120,6 +125,10 @@ typedef struct
     texture_t font_texture;
     texture_t board_texture;
 
+    VkImage depthImage;
+    VkDeviceMemory depthMemory;
+    VkImageView depthImageView;
+
     pipeline_t textured_pipeline;
     pipeline_t colored_pipeline;
     pipeline_t text_pipeline;
@@ -165,6 +174,13 @@ typedef struct {
 void VK_START(void);
 int VK_FRAME(void);
 void VK_END(void);
+
+typedef struct {
+    vec3 position;
+    vec3 rotation;
+    vec3 scale;
+    vec4 color;
+} cube_instance_t;
 
 static void _draw_char(const char c, const float x, const float y, const float char_width, const float char_height)
 {
@@ -213,3 +229,26 @@ static inline void vk_drawtextf(const float x, const float y, const char *fmt, .
     VK_DRAWTEXT(buffer, x, y);
 }
 #define VK_DRAWTEXTF(x, y, fmt, ...) vk_drawtextf((x), (y), (fmt), __VA_ARGS__)
+
+static inline void _draw_cube(const float x, const float y, const float z, const float rotY, const float scale)
+{
+    mat4 model, view, proj, mvp;
+
+    glm_mat4_identity(model);
+    glm_translate(model, (vec3){x, y, z});
+    glm_rotate(model, rotY, (vec3){0.0f, 1.0f, 0.0f});
+    glm_scale_uni(model, scale);
+
+    glm_mat4_identity(view);
+    glm_rotate(view, state.cam.pitch, (vec3){1.0f, 0.0f, 0.0f});
+    glm_rotate(view, state.cam.yaw, (vec3){0.0f, 1.0f, 0.0f});
+    glm_translate(view, (vec3){-state.cam.x, -state.cam.y, state.cam.z});
+
+    glm_perspective(glm_rad(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f, proj);
+    glm_mat4_mul(proj, view, mvp);
+    glm_mat4_mul(mvp, model, mvp);
+
+    vkCmdPushConstants(state.v.commandBuffer, state.v.textured_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), mvp);
+    vkCmdDraw(state.v.commandBuffer, state.v.cube_buffer.vertex_count, 1, 0, 0);
+}
+#define VK_DRAWCUBE(x, y, z, rotY, scale) _draw_cube((x), (y), (z), (rotY), (scale))

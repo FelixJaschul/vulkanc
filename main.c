@@ -23,38 +23,20 @@ VkDescriptorSet board_descriptor_set;
 void RENDER()
 {
     const VkDeviceSize offsets[] = {0};
-    vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &board_descriptor_set, 0, NULL);
+
     {
-        mat4 model, view, proj, mvp;
-        glm_mat4_identity(model);
-        // glm_rotate(model, (float) glfwGetTime() * 0.5f, (vec3){0.0f, 1.0f, 0.0f});
-        glm_translate(model, (vec3){1.5f, 0.0f, 0.0f});
-        glm_mat4_identity(view);
-
-        glm_rotate(view, state.cam.pitch, (vec3){1.0f, 0.0f, 0.0f});
-        glm_rotate(view, state.cam.yaw, (vec3){0.0f, 1.0f, 0.0f});
-
-        glm_translate(view, (vec3){-state.cam.x, -state.cam.y, state.cam.z});
-        glm_perspective(glm_rad(45.0f), (float) WIDTH / (float) HEIGHT, 0.1f, 100.0f, proj);
-        glm_mat4_mul(proj, view, mvp);
-        glm_mat4_mul(mvp, model, mvp);
-
-        push_constants_textured_t push_data = {0};
-        glm_mat4_copy(mvp, push_data.mvp);
-
+        vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &board_descriptor_set, 0, NULL);
         vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
-        vkCmdPushConstants(state.v.commandBuffer, state.v.textured_pipeline.layout,
-                   VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                   0, sizeof(push_constants_textured_t), &push_data);
         vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.cube_buffer.buffer, offsets);
-        vkCmdDraw(state.v.commandBuffer, state.v.cube_buffer.vertex_count, 1, 0, 0);
+        VK_DRAWCUBE(1, 1, 1, 0, 1);
+        VK_DRAWCUBE(1, 1, -1.5f, 0, 1);
     }
 
-    vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &font_descriptor_set, 0, NULL);
     {
         mat4 proj;
         glm_ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, proj);
 
+        vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &font_descriptor_set, 0, NULL);
         vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
         vkCmdPushConstants(state.v.commandBuffer, state.v.textured_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), proj);
         vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &font_descriptor_set, 0, NULL);
@@ -66,8 +48,8 @@ void RENDER()
 
 void INPUT()
 {
-    const float cam_speed = 3.0f * state.delta_time;
-    const float rot_speed = 1.2f * state.delta_time;
+    const float cam_speed = CAM * state.delta_time;
+    const float rot_speed = ROT * state.delta_time;
 
     if (glfwGetKey(state.glfw.win, GLFW_KEY_LEFT) == GLFW_PRESS) state.cam.yaw -= rot_speed;
     if (glfwGetKey(state.glfw.win, GLFW_KEY_RIGHT) == GLFW_PRESS) state.cam.yaw += rot_speed;
