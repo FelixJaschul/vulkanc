@@ -41,7 +41,7 @@ void RENDER()
     }
 
     {
-        VK_TINT(1.0f, 1.0f, 1.0f, 1.0f);
+        VK_TINT(1.0f, 0.2f, 1.0f, 1.0f);
         mat4 proj;
         glm_ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, proj);
 
