@@ -639,8 +639,8 @@ static void create_cube_mesh(void)
     create_mesh_buffer(cube_vertices, state.v.cube_buffer.vertex_count, &state.v.cube_buffer);
 }
 
-static VkDescriptorSet font_descriptor_set;
-static VkDescriptorSet board_descriptor_set;
+VkDescriptorSet font_descriptor_set;
+VkDescriptorSet board_descriptor_set;
 
 void VK_START()
 {
@@ -1055,53 +1055,8 @@ int VK_FRAME()
     };
 
     vkCmdBeginRenderPass(state.v.commandBuffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-    const VkDeviceSize offsets[] = {0};
 
-    vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &board_descriptor_set, 0, NULL);
-    {
-        mat4 model, view, proj, mvp;
-        glm_mat4_identity(model);
-        // glm_rotate(model, (float) glfwGetTime() * 0.5f, (vec3){0.0f, 1.0f, 0.0f});
-        glm_translate(model, (vec3){1.5f, 0.0f, 0.0f});
-        glm_mat4_identity(view);
-
-        glm_rotate(view, state.cam.pitch, (vec3){1.0f, 0.0f, 0.0f});
-        glm_rotate(view, state.cam.yaw, (vec3){0.0f, 1.0f, 0.0f});
-
-        glm_translate(view, (vec3){-state.cam.x, -state.cam.y, state.cam.z});
-        glm_perspective(glm_rad(45.0f), (float) WIDTH / (float) HEIGHT, 0.1f, 100.0f, proj);
-        glm_mat4_mul(proj, view, mvp);
-        glm_mat4_mul(mvp, model, mvp);
-
-        push_constants_textured_t push_data = {0};
-        glm_mat4_copy(mvp, push_data.mvp);
-        push_data.tint_color[0] = 1.0f; // Red
-        push_data.tint_color[1] = 0.5f; // Green
-        push_data.tint_color[2] = 0.5f; // Blue
-        push_data.tint_color[3] = 1.0f; // Alpha
-
-        vkCmdPushConstants(state.v.commandBuffer, state.v.textured_pipeline.layout,
-                   VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                   0, sizeof(push_constants_textured_t), &push_data);
-
-        vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
-        vkCmdPushConstants(state.v.commandBuffer, state.v.textured_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), mvp);
-        vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.cube_buffer.buffer, offsets);
-        vkCmdDraw(state.v.commandBuffer, state.v.cube_buffer.vertex_count, 1, 0, 0);
-    }
-
-    vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &font_descriptor_set, 0, NULL);
-    {
-        mat4 proj;
-        glm_ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, proj);
-
-        vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
-        vkCmdPushConstants(state.v.commandBuffer, state.v.textured_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), proj);
-        vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &font_descriptor_set, 0, NULL);
-        vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.text_buffer.buffer, offsets);
-
-        if (state.v.text_buffer.vertex_count > 0) vkCmdDraw(state.v.commandBuffer, state.v.text_buffer.vertex_count, 1, 0, 0);
-    }
+    RENDER();
 
     vkCmdEndRenderPass(state.v.commandBuffer);
     vkEndCommandBuffer(state.v.commandBuffer);

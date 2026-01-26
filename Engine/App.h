@@ -16,6 +16,7 @@
 // Main macro
 // and the engine handles the rest
 void INPUT();
+void RENDER();
 void RUN();
 #define ENGINE_ENTRY_POINT \
     int main() { \
@@ -40,6 +41,9 @@ void RUN();
         exit(1); \
     } \
 } while(0)
+
+extern VkDescriptorSet font_descriptor_set;
+extern VkDescriptorSet board_descriptor_set;
 
 typedef struct
 {
