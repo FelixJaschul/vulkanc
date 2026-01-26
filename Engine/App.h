@@ -28,7 +28,11 @@ void RUN();
 #define WIDTH  800
 #define HEIGHT 600
 #define SIZE   0.5f
-#define TINT {0.67f, 0.89f, 0.67f, 1.0f}
+
+static vec4 tint = {1, 1 ,1 ,1};
+#define VK_TINT(r, g, b, a) do { \
+    tint[0] = r; tint[1] = g; tint[2] = b; tint[3] = a; \
+}while(0)
 
 #define CAM 3.0f
 #define ROT 1.2f
@@ -212,7 +216,7 @@ static void _draw_string(const char *str, const float x, const float y)
     }
 }
 #define VK_BEGINTEXT do { state.text_vertex_count = 0; } while (0)
-#define VK_DRAWTEXT(str, x, y) _draw_string((str), (x), (y))
+#define VK_DRAWTEXT(x, y, str) _draw_string((str), (x), (y))
 
 float  VK_GETDELTATIME(void);
 double VK_GETFPS(void);
@@ -226,7 +230,7 @@ static inline void vk_drawtextf(const float x, const float y, const char *fmt, .
     vsnprintf(buffer, sizeof(buffer), fmt, args);
     va_end(args);
 
-    VK_DRAWTEXT(buffer, x, y);
+    VK_DRAWTEXT(x, y, buffer);
 }
 #define VK_DRAWTEXTF(x, y, fmt, ...) vk_drawtextf((x), (y), (fmt), __VA_ARGS__)
 
@@ -248,7 +252,16 @@ static inline void _draw_cube(const float x, const float y, const float z, const
     glm_mat4_mul(proj, view, mvp);
     glm_mat4_mul(mvp, model, mvp);
 
-    vkCmdPushConstants(state.v.commandBuffer, state.v.textured_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), mvp);
+    push_constants_textured_t pc;
+
+    glm_mat4_copy(mvp, pc.mvp);
+    glm_vec4_copy(tint, pc.tint_color);
+
+    vkCmdPushConstants(
+        state.v.commandBuffer, state.v.textured_pipeline.layout,
+        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_constants_textured_t), &pc
+    );
+
     vkCmdDraw(state.v.commandBuffer, state.v.cube_buffer.vertex_count, 1, 0, 0);
 }
 #define VK_DRAWCUBE(x, y, z, rotY, scale) _draw_cube((x), (y), (z), (rotY), (scale))

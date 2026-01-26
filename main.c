@@ -1,17 +1,18 @@
 #include "Engine/App.h"
 
 state_t state;
+#define CUBE 4
 
 void RUN()
 {
     VK_START();
-
     while (VK_FRAME())
     {
         VK_BEGINTEXT;
         VK_DRAWTEXTF(-0.9f, 0.9f, "FPS:%.0f", VK_GETFPS());
         VK_DRAWTEXTF(-0.9f, 0.8f, "X:%.2f Y:%.2f Z:%.2f", state.cam.x, state.cam.y, state.cam.z);
-        VK_DRAWTEXT("Vulkan Demo", -0.9f, -0.9f);
+        VK_DRAWTEXT(-0.9f, -0.9f, "Vulkan Demo");
+        VK_DRAWTEXTF(-0.9f, 0.7f, "SIZE:%i", CUBE*CUBE*CUBE);
     }
 
     VK_END();
@@ -28,18 +29,30 @@ void RENDER()
         vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &board_descriptor_set, 0, NULL);
         vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
         vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.cube_buffer.buffer, offsets);
-        VK_DRAWCUBE(1, 1, 1, 0, 1);
-        VK_DRAWCUBE(1, 1, -1.5f, 0, 1);
+        VK_TINT(0.67f, 0.70f, 0.67f, 1.0f);
+        VK_DRAWCUBE(1, 1, 0, 0, 1);
+        for (int i = 0; i < CUBE; i++)
+        for (int j = 0; j < CUBE; j++)
+        for (int k = 0; k < CUBE; k++)
+        {
+            VK_TINT(0.67f, 0.40f, 0.67f, 1.0f);
+            VK_DRAWCUBE(k-4, j-2, i-4, 0, 1);
+        }
     }
 
     {
+        VK_TINT(1.0f, 1.0f, 1.0f, 1.0f);
         mat4 proj;
         glm_ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, proj);
 
-        vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &font_descriptor_set, 0, NULL);
-        vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
-        vkCmdPushConstants(state.v.commandBuffer, state.v.textured_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4), proj);
-        vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &font_descriptor_set, 0, NULL);
+        push_constants_textured_t pc;
+        glm_mat4_copy(proj, pc.mvp);
+        glm_vec4_copy(tint, pc.tint_color);
+
+        vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.text_pipeline.pipeline);
+        vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.text_pipeline.layout, 0, 1, &font_descriptor_set, 0, NULL);
+        vkCmdPushConstants(state.v.commandBuffer, state.v.text_pipeline.layout,
+            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_constants_textured_t), &pc);
         vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.text_buffer.buffer, offsets);
 
         if (state.v.text_buffer.vertex_count > 0) vkCmdDraw(state.v.commandBuffer, state.v.text_buffer.vertex_count, 1, 0, 0);

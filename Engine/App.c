@@ -711,50 +711,48 @@ static void create_cube_mesh(void)
     const float half_size = SIZE;
     const float tile_scale = 4.0f;
 
-    const vec4 tint = TINT;
-
     const vertex_t cube_vertices[] = {
-        {{-half_size, -half_size,  half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size, -half_size,  half_size}, {tile_scale, 0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size,  half_size,  half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size, -half_size,  half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size,  half_size,  half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size,  half_size,  half_size}, {0.0f,       tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
+        {{-half_size, -half_size,  half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{ half_size, -half_size,  half_size}, {tile_scale, 0.0f},        {1, 1 ,1, 1}},
+        {{ half_size,  half_size,  half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{-half_size, -half_size,  half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{ half_size,  half_size,  half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{-half_size,  half_size,  half_size}, {0.0f,       tile_scale},  {1, 1 ,1, 1}},
 
-        {{ half_size, -half_size, -half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size, -half_size, -half_size}, {tile_scale, 0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size, -half_size, -half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size,  half_size, -half_size}, {0.0f,       tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
+        {{ half_size, -half_size, -half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{-half_size, -half_size, -half_size}, {tile_scale, 0.0f},        {1, 1 ,1, 1}},
+        {{-half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{ half_size, -half_size, -half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{-half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{ half_size,  half_size, -half_size}, {0.0f,       tile_scale},  {1, 1 ,1, 1}},
 
-        {{-half_size, -half_size, -half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size, -half_size,  half_size}, {tile_scale, 0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size,  half_size,  half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size, -half_size, -half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size,  half_size,  half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size,  half_size, -half_size}, {0.0f,       tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
+        {{-half_size, -half_size, -half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{-half_size, -half_size,  half_size}, {tile_scale, 0.0f},        {1, 1 ,1, 1}},
+        {{-half_size,  half_size,  half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{-half_size, -half_size, -half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{-half_size,  half_size,  half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{-half_size,  half_size, -half_size}, {0.0f,       tile_scale},  {1, 1 ,1, 1}},
 
-        {{ half_size, -half_size,  half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size, -half_size, -half_size}, {tile_scale, 0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size, -half_size,  half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size,  half_size,  half_size}, {0.0f,       tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
+        {{ half_size, -half_size,  half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{ half_size, -half_size, -half_size}, {tile_scale, 0.0f},        {1, 1 ,1, 1}},
+        {{ half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{ half_size, -half_size,  half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{ half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{ half_size,  half_size,  half_size}, {0.0f,       tile_scale},  {1, 1 ,1, 1}},
 
-        {{-half_size,  half_size,  half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size,  half_size,  half_size}, {tile_scale, 0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size,  half_size,  half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size,  half_size, -half_size}, {0.0f,       tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
+        {{-half_size,  half_size,  half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{ half_size,  half_size,  half_size}, {tile_scale, 0.0f},        {1, 1 ,1, 1}},
+        {{ half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{-half_size,  half_size,  half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{ half_size,  half_size, -half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{-half_size,  half_size, -half_size}, {0.0f,       tile_scale},  {1, 1 ,1, 1}},
 
-        {{-half_size, -half_size, -half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size, -half_size, -half_size}, {tile_scale, 0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size, -half_size,  half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size, -half_size, -half_size}, {0.0f,       0.0f},        {tint[0], tint[1], tint[2], tint[3]}},
-        {{ half_size, -half_size,  half_size}, {tile_scale, tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
-        {{-half_size, -half_size,  half_size}, {0.0f,       tile_scale},  {tint[0], tint[1], tint[2], tint[3]}},
+        {{-half_size, -half_size, -half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{ half_size, -half_size, -half_size}, {tile_scale, 0.0f},        {1, 1 ,1, 1}},
+        {{ half_size, -half_size,  half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{-half_size, -half_size, -half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
+        {{ half_size, -half_size,  half_size}, {tile_scale, tile_scale},  {1, 1 ,1, 1}},
+        {{-half_size, -half_size,  half_size}, {0.0f,       tile_scale},  {1, 1 ,1, 1}},
     };
     state.v.cube_buffer.vertex_count = 36;
     create_mesh_buffer(cube_vertices, state.v.cube_buffer.vertex_count, &state.v.cube_buffer);
@@ -1168,6 +1166,11 @@ int VK_FRAME()
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
     };
 
+    const VkClearValue clear_values[2] = {
+        {.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
+        {.depthStencil = {1.0f, 0}}
+    };
+
     vkBeginCommandBuffer(state.v.commandBuffer, &begin_info);
     const VkRenderPassBeginInfo render_pass_info = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -1177,8 +1180,8 @@ int VK_FRAME()
             .offset = {0, 0},
             .extent = state.v.swapChainExtent
         },
-        .clearValueCount = 1,
-        .pClearValues = &(VkClearValue){.color = {{0.0f, 0.0f, 0.0f, 1.0f}}}
+        .clearValueCount = 2,
+        .pClearValues = clear_values
     };
 
     vkCmdBeginRenderPass(state.v.commandBuffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
