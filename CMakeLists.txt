@@ -1,24 +1,18 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.10)
 project(vulkan LANGUAGES C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_OSX_ARCHITECTURES "arm64")
 
-set(VULKAN_SDK_ROOT "/Users/felixjaschul/VulkanSDK/1.4.335.1/macOS")
-set(Vulkan_INCLUDE_DIR ${VULKAN_SDK_ROOT}/include)
-set(Vulkan_LIBRARY ${VULKAN_SDK_ROOT}/lib/libvulkan.dylib)
+# Add the Engine subdirectory
+add_subdirectory(Engine)
 
-find_package(glfw3 REQUIRED)
+# Create the main executable
+add_executable(vulkan main.c)
 
-add_executable(${PROJECT_NAME} main.c)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=address")
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-        ${Vulkan_INCLUDE_DIR}
-        /opt/homebrew/include
-)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE
-        ${Vulkan_LIBRARY}
-        glfw
-        /opt/homebrew/lib/libcglm.dylib
-)
+# Link against the Engine library
+target_link_libraries(vulkan PRIVATE Engine)
