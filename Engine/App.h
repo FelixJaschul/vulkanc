@@ -103,6 +103,38 @@ typedef struct
 
 typedef struct
 {
+    int id;
+    float x, y;
+    float length;
+    float angle;
+} wall_t;
+
+typedef struct
+{
+    int id;
+    uint32_t light;
+    wall_t *walls;
+    float floor_heigh, ceil_height;
+    float angle;
+} sector_t;
+
+typedef struct
+{
+    int id;
+    wall_t *walls;
+    sector_t *sectors;
+} block_t;
+
+typedef struct
+{
+    const char* name;
+    const char* path;
+    block_t *blocks;
+    sector_t *sectors;
+} level_t;
+
+typedef struct
+{
     VkInstance instance;
     VkPhysicalDevice physicalDevice;
     VkDevice device;

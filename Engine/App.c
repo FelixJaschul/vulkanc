@@ -1296,3 +1296,47 @@ void VK_END(void)
     glfwDestroyWindow(state.glfw.win);
     glfwTerminate();
 }
+
+/*
+void _render_wall(wall_t *wall)
+{
+    // TODO: Implement wall rendering
+    // This would:
+    // 1. Calculate wall quad vertices based on wall->x, wall->y, wall->length, wall->angle
+    // 2. Apply sector floor/ceiling heights
+    // 3. Call VK_DRAWCUBE or create custom geometry
+}
+
+void _render_sector(sector_t *sector)
+{
+    // Render all walls in this sector
+    for (uint32_t i = 0; i < sector->wall_count; i++)
+    {
+        wall_t *wall = &sector->walls[i];
+        _render_wall(wall);
+    }
+}
+
+void _render_level()
+{
+    // Render all sectors in the current level
+    for (uint32_t i = 0; i < state.current_level.sector_count; i++)
+    {
+        sector_t *sector = &state.current_level.sectors[i];
+        _render_sector(sector);
+    }
+}
+
+bool _player_in_sector(sector_t *sector)
+{
+    // TODO: Implement point-in-polygon test
+    // Check if player position (state.cam.x, state.cam.z) is inside sector
+    return false;
+}
+
+void _handle_collision(wall_t *wall)
+{
+    // TODO: Implement collision response
+    // Push player away from wall
+}
+*/
