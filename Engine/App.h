@@ -9,7 +9,6 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdarg.h>
-#include <math.h>
 
 // Engine Application API
 // Simple interface for creating Vulkan applications
@@ -32,23 +31,6 @@ void RUN();
 
 #define CAM 3.0f
 #define ROT 1.2f
-
-// Rendering configuration
-#define NEAR_PLANE 0.1f
-#define FAR_PLANE 100.0f
-#define FOV_DEGREES 45.0f
-
-// Text rendering
-#define CHAR_WIDTH 0.04f
-#define CHAR_HEIGHT 0.08f
-#define CHAR_SPACING 1.1f
-
-// Graphics
-#define TILE_SCALE 4.0f
-#define CLEAR_COLOR_R 0.0f
-#define CLEAR_COLOR_G 0.0f
-#define CLEAR_COLOR_B 0.0f
-#define CLEAR_COLOR_A 1.0f
 
 #define VK_ASSERT(result, msg) do { \
     if ((result) != VK_SUCCESS) { \
@@ -122,27 +104,33 @@ typedef struct
 typedef struct
 {
     int id;
-    float x1, z1;
-    float x2, z2;
-    bool is_solid;
-    const char* texture_path;
+    float x, y;
+    float length;
+    float angle;
 } wall_t;
 
 typedef struct
 {
     int id;
-    float light_intensity; // 0.0 to 1.0
+    uint32_t light;
     wall_t *walls;
-    uint32_t wall_count;
-    float floor_height, ceil_height;
+    float floor_heigh, ceil_height;
+    float angle;
 } sector_t;
+
+typedef struct
+{
+    int id;
+    wall_t *walls;
+    sector_t *sectors;
+} block_t;
 
 typedef struct
 {
     const char* name;
     const char* path;
+    block_t *blocks;
     sector_t *sectors;
-    uint32_t sector_count;
 } level_t;
 
 typedef struct
@@ -190,20 +178,17 @@ typedef struct
     pipeline_t text_pipeline;
     mesh_buffer_t text_buffer;
     mesh_buffer_t cube_buffer;
-    mesh_buffer_t wall_buffer;
 
     const vertex_t *current_vertices;
     uint32_t current_vertex_count;
 } vulkan_t;
 
 #define MAX_TEXT_VERTICES 10000
-#define MAX_WALL_VERTICES 10000
 typedef struct
 {
     glfw_t glfw;
     vulkan_t v;
     cam_t cam;
-    level_t current_level;
 
     double last_time;
     double last_frame_time;
@@ -213,10 +198,6 @@ typedef struct
 
     vertex_t text_vertices[MAX_TEXT_VERTICES];
     uint32_t text_vertex_count;
-
-    vertex_t wall_vertices[MAX_WALL_VERTICES];
-    uint32_t wall_vertex_count;
-    sector_t *current_sector;
 } state_t;
 
 extern state_t state;
@@ -281,8 +262,8 @@ static void _draw_string(const char *str, const float x, const float y)
     float current_x = x;
     for (const char *p = str; *p; p++)
     {
-        _draw_char(*p, current_x, y, CHAR_WIDTH, CHAR_HEIGHT);
-        current_x += CHAR_WIDTH * CHAR_SPACING;
+        _draw_char(*p, current_x, y, 0.08f * 0.5f, 0.08f);
+        current_x += 0.08f * 0.5f * 1.1f;
     }
 }
 #define VK_BEGINTEXT do { state.text_vertex_count = 0; } while (0)
@@ -316,9 +297,9 @@ static inline void _draw_cube(const float x, const float y, const float z, const
     glm_mat4_identity(view);
     glm_rotate(view, state.cam.pitch, (vec3){1.0f, 0.0f, 0.0f});
     glm_rotate(view, state.cam.yaw, (vec3){0.0f, 1.0f, 0.0f});
-    glm_translate(view, (vec3){-state.cam.x, -state.cam.y, -state.cam.z});
+    glm_translate(view, (vec3){-state.cam.x, -state.cam.y, state.cam.z});
 
-    glm_perspective(glm_rad(FOV_DEGREES), (float)WIDTH / (float)HEIGHT, NEAR_PLANE, FAR_PLANE, proj);
+    glm_perspective(glm_rad(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f, proj);
     glm_mat4_mul(proj, view, mvp);
     glm_mat4_mul(mvp, model, mvp);
 
