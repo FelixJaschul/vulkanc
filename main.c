@@ -8,7 +8,7 @@ void RUN()
     while (VK_FRAME())
     {
         VK_BEGINTEXT;
-        VK_DRAWTEXTF(-0.9f, 0.9f, "FPS:%.0f", VK_GETFPS());
+        VK_DRAWTEXTF(-0.9f, 0.9f, "FPS:%.0f", state.fps);
         VK_DRAWTEXTF(-0.9f, 0.8f, "X:%.2f Y:%.2f Z:%.2f", state.cam.x, state.cam.y, state.cam.z);
         VK_DRAWTEXT(-0.9f, -0.9f, "Vulkan Demo");
         VK_DRAWTEXTF(-0.9f, 0.7f, "SIZE:%i", CUBE*CUBE*CUBE);
@@ -35,7 +35,8 @@ void RENDER()
         for (int j = 0; j < CUBE; j++)
         for (int k = 0; k < CUBE; k++)
         {
-            VK_TINT(0.17f, 0.10f, 0.17f, 1.0f);
+            VK_TEXTURE("Engine/res/test.png");
+            VK_TINT(0.37f, 0.10f, 0.17f, 1.0f);
             VK_DRAWCUBE(k-4, j-2, i-4, 0, 1);
         }
     }
@@ -93,5 +94,32 @@ void INPUT()
         state.cam.z -= right[2] * cam_speed;
     }
 }
+/*
+void _render_wall(wall_t *wall)
+{
+
+}
+
+void _render()
+{
+    for (const sector_t *sector ; state.current_level.sectors)
+    {
+        for (const wall_t *wall ; sector->walls)
+        {
+            _render_wall(wall);
+        }
+    }
+}
+
+bool _updatePlayer()
+{
+    for (const sector_t *sector ; state.current_level.blocks->sectors)
+    {
+        for (const wall_t *wall ; sector->walls)
+        {
+
+        }
+    }
+}*/
 
 ENGINE_ENTRY_POINT

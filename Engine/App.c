@@ -1296,39 +1296,3 @@ void VK_END(void)
     glfwDestroyWindow(state.glfw.win);
     glfwTerminate();
 }
-
-void VK_GET_CAMPOS(float *x, float *y, float *z)
-{
-    if (x) *x = state.cam.x;
-    if (y) *y = state.cam.y;
-    if (z) *z = state.cam.z;
-}
-
-void VK_SET_CAMPOS(const float x, const float y, const float z)
-{
-    state.cam.x = x;
-    state.cam.y = y;
-    state.cam.z = z;
-}
-
-void VK_GET_CAMROT(float *yaw, float *pitch)
-{
-    if (yaw) *yaw = state.cam.yaw;
-    if (pitch) *pitch = state.cam.pitch;
-}
-
-void VK_SET_CAMROT(const float yaw, const float pitch)
-{
-    state.cam.yaw = yaw;
-    state.cam.pitch = pitch;
-}
-
-float VK_GETDELTATIME()
-{
-    return state.delta_time;
-}
-
-double VK_GETFPS()
-{
-    return state.fps;
-}
