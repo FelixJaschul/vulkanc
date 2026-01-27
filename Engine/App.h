@@ -29,11 +29,6 @@ void RUN();
 #define HEIGHT 600
 #define SIZE   0.5f
 
-static vec4 tint = {1, 1 ,1 ,1};
-#define VK_TINT(r, g, b, a) do { \
-    tint[0] = r; tint[1] = g; tint[2] = b; tint[3] = a; \
-}while(0)
-
 #define CAM 3.0f
 #define ROT 1.2f
 
@@ -97,6 +92,15 @@ typedef struct
     VkPipelineLayout layout;
 } pipeline_t;
 
+#define MAX_TEXTURES 64
+typedef struct
+{
+    char path[256];
+    texture_t texture;
+    VkDescriptorSet descriptor_set;
+    bool loaded;
+} texture_cache_entry_t;
+
 typedef struct
 {
     VkInstance instance;
@@ -115,6 +119,7 @@ typedef struct
     VkRenderPass renderPass;
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
+    VkCommandBuffer loadingCommandBuffer;
     VkQueue graphicsQueue;
     VkQueue presentQueue;
     uint32_t graphicsFamilyIndex;
@@ -128,6 +133,9 @@ typedef struct
     VkDescriptorSetLayout textureSetLayout;
     texture_t font_texture;
     texture_t board_texture;
+
+    texture_cache_entry_t texture_cache[MAX_TEXTURES];
+    uint32_t texture_count;
 
     VkImage depthImage;
     VkDeviceMemory depthMemory;
@@ -185,6 +193,17 @@ typedef struct {
     vec3 scale;
     vec4 color;
 } cube_instance_t;
+
+static vec4 tint = {1, 1 ,1 ,1};
+#define VK_TINT(r, g, b, a) do { \
+    tint[0] = r; tint[1] = g; tint[2] = b; tint[3] = a; \
+} while(0)
+
+VkDescriptorSet* vk_get_texture(const char* path);
+static VkDescriptorSet *current_texture = NULL;
+#define VK_TEXTURE(path) do { \
+    current_texture = vk_get_texture(path); \
+} while(0)
 
 static void _draw_char(const char c, const float x, const float y, const float char_width, const float char_height)
 {
@@ -256,6 +275,9 @@ static inline void _draw_cube(const float x, const float y, const float z, const
 
     glm_mat4_copy(mvp, pc.mvp);
     glm_vec4_copy(tint, pc.tint_color);
+
+    const VkDescriptorSet *tex_to_use = current_texture ? current_texture : &board_descriptor_set;
+    vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, tex_to_use, 0, NULL);
 
     vkCmdPushConstants(
         state.v.commandBuffer, state.v.textured_pipeline.layout,

@@ -83,7 +83,7 @@ static void transition_image_layout(VkImage image, VkFormat format, VkImageLayou
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
     };
 
-    vkBeginCommandBuffer(state.v.commandBuffer, &begin_info);
+    vkBeginCommandBuffer(state.v.loadingCommandBuffer, &begin_info);
     VkPipelineStageFlags source_stage;
     VkPipelineStageFlags destination_stage;
     VkImageMemoryBarrier barrier = {
@@ -132,17 +132,17 @@ static void transition_image_layout(VkImage image, VkFormat format, VkImageLayou
         ASSERT(0, "unsupported layout transition");
     }
 
-    vkCmdPipelineBarrier(state.v.commandBuffer, source_stage, destination_stage, 0, 0, NULL, 0, NULL, 1, &barrier);
-    vkEndCommandBuffer(state.v.commandBuffer);
+    vkCmdPipelineBarrier(state.v.loadingCommandBuffer, source_stage, destination_stage, 0, 0, NULL, 0, NULL, 1, &barrier);
+    vkEndCommandBuffer(state.v.loadingCommandBuffer);
     const VkSubmitInfo submit_info = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .commandBufferCount = 1,
-        .pCommandBuffers = &state.v.commandBuffer
+        .pCommandBuffers = &state.v.loadingCommandBuffer
     };
 
     vkQueueSubmit(state.v.graphicsQueue, 1, &submit_info, VK_NULL_HANDLE);
     vkQueueWaitIdle(state.v.graphicsQueue);
-    vkResetCommandBuffer(state.v.commandBuffer, 0);
+    vkResetCommandBuffer(state.v.loadingCommandBuffer, 0);
 }
 
 static void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
@@ -152,7 +152,7 @@ static void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width,
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
     };
 
-    vkBeginCommandBuffer(state.v.commandBuffer, &begin_info);
+    vkBeginCommandBuffer(state.v.loadingCommandBuffer, &begin_info);
     const VkBufferImageCopy region = {
         .bufferOffset = 0,
         .bufferRowLength = 0,
@@ -167,17 +167,17 @@ static void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width,
         .imageExtent = {width, height, 1}
     };
 
-    vkCmdCopyBufferToImage(state.v.commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-    vkEndCommandBuffer(state.v.commandBuffer);
+    vkCmdCopyBufferToImage(state.v.loadingCommandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    vkEndCommandBuffer(state.v.loadingCommandBuffer);
     const VkSubmitInfo submit_info = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .commandBufferCount = 1,
-        .pCommandBuffers = &state.v.commandBuffer
+        .pCommandBuffers = &state.v.loadingCommandBuffer
     };
 
     vkQueueSubmit(state.v.graphicsQueue, 1, &submit_info, VK_NULL_HANDLE);
     vkQueueWaitIdle(state.v.graphicsQueue);
-    vkResetCommandBuffer(state.v.commandBuffer, 0);
+    vkResetCommandBuffer(state.v.loadingCommandBuffer, 0);
 }
 
 static void create_texture_from_file(const char *path, texture_t *texture)
@@ -282,12 +282,12 @@ static void create_descriptor_pool(void)
     const VkDescriptorPoolSize pool_sizes[] = {
         {
             .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .descriptorCount = 2
+            .descriptorCount = MAX_TEXTURES
         }
     };
     const VkDescriptorPoolCreateInfo pool_info = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-        .maxSets = 2,
+        .maxSets = MAX_TEXTURES,
         .poolSizeCount = 1,
         .pPoolSizes = pool_sizes
     };
@@ -334,6 +334,34 @@ static void read_file(const char *path, char **data, size_t *size)
     ASSERT(data, "Failed to allocate memory for file");
     fread(*data, 1, *size, file);
     fclose(file);
+}
+
+VkDescriptorSet* vk_get_texture(const char* path)
+{
+    if (!path) return NULL;
+
+    for (uint32_t i = 0; i < state.v.texture_count; i++) {
+        if (strcmp(state.v.texture_cache[i].path, path) == 0) {
+            return &state.v.texture_cache[i].descriptor_set;
+        }
+    }
+
+    if (state.v.texture_count >= MAX_TEXTURES) {
+        fprintf(stderr, "Warning: Texture cache full, cannot load %s\n", path);
+        return NULL;
+    }
+
+    texture_cache_entry_t *entry = &state.v.texture_cache[state.v.texture_count];
+    strncpy(entry->path, path, sizeof(entry->path) - 1);
+
+    create_texture_from_file(path, &entry->texture);
+
+    create_descriptor_set(&entry->texture, &entry->descriptor_set);
+
+    entry->loaded = true;
+    state.v.texture_count++;
+
+    return &entry->descriptor_set;
 }
 
 static VkFormat _find_depth_format(void)
@@ -686,17 +714,17 @@ static void create_mesh_buffer(const vertex_t *vertices, const uint32_t vertex_c
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
     };
 
-    vkBeginCommandBuffer(state.v.commandBuffer, &begin_info);
+    vkBeginCommandBuffer(state.v.loadingCommandBuffer, &begin_info);
     const VkBufferCopy copy_region = {
         .size = buffer_size
     };
 
-    vkCmdCopyBuffer(state.v.commandBuffer, staging_buffer, buffer->buffer, 1, &copy_region);
-    vkEndCommandBuffer(state.v.commandBuffer);
+    vkCmdCopyBuffer(state.v.loadingCommandBuffer, staging_buffer, buffer->buffer, 1, &copy_region);
+    vkEndCommandBuffer(state.v.loadingCommandBuffer);
     const VkSubmitInfo submit_info = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .commandBufferCount = 1,
-        .pCommandBuffers = &state.v.commandBuffer
+        .pCommandBuffers = &state.v.loadingCommandBuffer
     };
 
     vkQueueSubmit(state.v.graphicsQueue, 1, &submit_info, VK_NULL_HANDLE);
@@ -764,6 +792,9 @@ VkDescriptorSet board_descriptor_set;
 void VK_START()
 {
     state = (state_t){0};
+    state.v.texture_count = 0;
+    for (uint32_t i = 0; i < MAX_TEXTURES; i++)
+        state.v.texture_cache[i].loaded = false;
 
     {
         glyphs[':'] = (glyph_uv_t){10, 3};
@@ -1060,6 +1091,7 @@ void VK_START()
         };
 
         VK_ASSERT(vkAllocateCommandBuffers(state.v.device, &alloc_info, &state.v.commandBuffer), "allocate command buffer");
+        VK_ASSERT(vkAllocateCommandBuffers(state.v.device, &alloc_info, &state.v.loadingCommandBuffer), "allocate loading command buffer");
     }
 
     create_depth_resources();

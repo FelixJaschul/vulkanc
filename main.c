@@ -1,6 +1,5 @@
 #include "Engine/App.h"
 
-state_t state;
 #define CUBE 4
 
 void RUN()
@@ -18,9 +17,6 @@ void RUN()
     VK_END();
 }
 
-VkDescriptorSet font_descriptor_set;
-VkDescriptorSet board_descriptor_set;
-
 void RENDER()
 {
     const VkDeviceSize offsets[] = {0};
@@ -29,19 +25,24 @@ void RENDER()
         vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &board_descriptor_set, 0, NULL);
         vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
         vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.cube_buffer.buffer, offsets);
+    }
+
+    {
+        VK_TEXTURE("Engine/res/checker.png");
         VK_TINT(0.67f, 0.70f, 0.67f, 1.0f);
-        VK_DRAWCUBE(1, 1, 0, 0, 1);
+        VK_DRAWCUBE(1, 0, 0, 0, 1);
         for (int i = 0; i < CUBE; i++)
         for (int j = 0; j < CUBE; j++)
         for (int k = 0; k < CUBE; k++)
         {
-            VK_TINT(0.67f, 0.40f, 0.67f, 1.0f);
+            VK_TINT(0.17f, 0.10f, 0.17f, 1.0f);
             VK_DRAWCUBE(k-4, j-2, i-4, 0, 1);
         }
     }
 
     {
-        VK_TINT(1.0f, 0.2f, 1.0f, 1.0f);
+        VK_TEXTURE("Engine/res/font.png");
+        VK_TINT(1.0f, 1.0f, 1.0f, 1.0f);
         mat4 proj;
         glm_ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, proj);
 
@@ -51,8 +52,7 @@ void RENDER()
 
         vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.text_pipeline.pipeline);
         vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.text_pipeline.layout, 0, 1, &font_descriptor_set, 0, NULL);
-        vkCmdPushConstants(state.v.commandBuffer, state.v.text_pipeline.layout,
-            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_constants_textured_t), &pc);
+        vkCmdPushConstants(state.v.commandBuffer, state.v.text_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_constants_textured_t), &pc);
         vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.text_buffer.buffer, offsets);
 
         if (state.v.text_buffer.vertex_count > 0) vkCmdDraw(state.v.commandBuffer, state.v.text_buffer.vertex_count, 1, 0, 0);
