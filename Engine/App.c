@@ -737,7 +737,7 @@ static void create_mesh_buffer(const vertex_t *vertices, const uint32_t vertex_c
 static void create_cube_mesh(void)
 {
     const float half_size = SIZE;
-    const float tile_scale = 4.0f;
+    const float tile_scale = TILE_SCALE;
 
     const vertex_t cube_vertices[] = {
         {{-half_size, -half_size,  half_size}, {0.0f,       0.0f},        {1, 1 ,1, 1}},
@@ -1136,6 +1136,14 @@ void VK_START()
         state.v.text_buffer.vertex_count = 0;
     }
 
+    {
+        const VkDeviceSize buffer_size = sizeof(vertex_t) * MAX_WALL_VERTICES;
+        create_buffer(buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                      &state.v.wall_buffer.buffer, &state.v.wall_buffer.memory);
+        state.v.wall_buffer.vertex_count = 0;
+    }
+
     create_cube_mesh();
 
     {
@@ -1192,6 +1200,15 @@ int VK_FRAME()
         state.v.text_buffer.vertex_count = state.text_vertex_count;
     }
 
+    if (state.wall_vertex_count > 0)
+    {
+        void *data;
+        vkMapMemory(state.v.device, state.v.wall_buffer.memory, 0, sizeof(vertex_t) * state.wall_vertex_count, 0, &data);
+        memcpy(data, state.wall_vertices, sizeof(vertex_t) * state.wall_vertex_count);
+        vkUnmapMemory(state.v.device, state.v.wall_buffer.memory);
+        state.v.wall_buffer.vertex_count = state.wall_vertex_count;
+    }
+
     vkResetCommandBuffer(state.v.commandBuffer, 0);
     const VkCommandBufferBeginInfo begin_info = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -1199,7 +1216,7 @@ int VK_FRAME()
     };
 
     const VkClearValue clear_values[2] = {
-        {.color = {{0.0f, 0.0f, 0.0f, 1.0f}}},
+        {.color = {{CLEAR_COLOR_R, CLEAR_COLOR_G, CLEAR_COLOR_B, CLEAR_COLOR_A}}},
         {.depthStencil = {1.0f, 0}}
     };
 
@@ -1248,6 +1265,7 @@ int VK_FRAME()
     return !glfwWindowShouldClose(state.glfw.win);
 }
 
+void level_cleanup(level_t *level);
 void VK_END(void)
 {
     vkDeviceWaitIdle(state.v.device);
@@ -1256,6 +1274,8 @@ void VK_END(void)
     vkDestroyFence(state.v.device, state.v.inFlightFence, NULL);
     vkDestroyBuffer(state.v.device, state.v.text_buffer.buffer, NULL);
     vkFreeMemory(state.v.device, state.v.text_buffer.memory, NULL);
+    vkDestroyBuffer(state.v.device, state.v.wall_buffer.buffer, NULL);
+    vkFreeMemory(state.v.device, state.v.wall_buffer.memory, NULL);
     vkDestroyBuffer(state.v.device, state.v.cube_buffer.buffer, NULL);
     vkFreeMemory(state.v.device, state.v.cube_buffer.memory, NULL);
     vkDestroyImageView(state.v.device, state.v.font_texture.view, NULL);
@@ -1296,47 +1316,3 @@ void VK_END(void)
     glfwDestroyWindow(state.glfw.win);
     glfwTerminate();
 }
-
-/*
-void _render_wall(wall_t *wall)
-{
-    // TODO: Implement wall rendering
-    // This would:
-    // 1. Calculate wall quad vertices based on wall->x, wall->y, wall->length, wall->angle
-    // 2. Apply sector floor/ceiling heights
-    // 3. Call VK_DRAWCUBE or create custom geometry
-}
-
-void _render_sector(sector_t *sector)
-{
-    // Render all walls in this sector
-    for (uint32_t i = 0; i < sector->wall_count; i++)
-    {
-        wall_t *wall = &sector->walls[i];
-        _render_wall(wall);
-    }
-}
-
-void _render_level()
-{
-    // Render all sectors in the current level
-    for (uint32_t i = 0; i < state.current_level.sector_count; i++)
-    {
-        sector_t *sector = &state.current_level.sectors[i];
-        _render_sector(sector);
-    }
-}
-
-bool _player_in_sector(sector_t *sector)
-{
-    // TODO: Implement point-in-polygon test
-    // Check if player position (state.cam.x, state.cam.z) is inside sector
-    return false;
-}
-
-void _handle_collision(wall_t *wall)
-{
-    // TODO: Implement collision response
-    // Push player away from wall
-}
-*/
