@@ -94,32 +94,5 @@ void INPUT()
         state.cam.z -= right[2] * cam_speed;
     }
 }
-/*
-void _render_wall(wall_t *wall)
-{
-
-}
-
-void _render()
-{
-    for (const sector_t *sector ; state.current_level.sectors)
-    {
-        for (const wall_t *wall ; sector->walls)
-        {
-            _render_wall(wall);
-        }
-    }
-}
-
-bool _updatePlayer()
-{
-    for (const sector_t *sector ; state.current_level.blocks->sectors)
-    {
-        for (const wall_t *wall ; sector->walls)
-        {
-
-        }
-    }
-}*/
 
 ENGINE_ENTRY_POINT
