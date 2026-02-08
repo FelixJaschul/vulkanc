@@ -1,8 +1,8 @@
 #include "Engine/App.h"
 
-sector_t* level_find_player_sector(level_t *level, float px, float pz);
-void level_render(level_t *level);
-bool level_check_collision(level_t *level, float *px, float *pz, float old_x, float old_z, float radius);
+sector_t* level_find_player_sector(const level_t *level, float px, float pz);
+void level_render(const level_t *level);
+bool level_check_collision(const level_t *level, float *px, float *pz, float old_x, float old_z);
 void level_cleanup(level_t *level);
 
 void RUN()
@@ -20,7 +20,7 @@ void RUN()
 
         const sector_t room = {
             .id = 0,
-            .light_intensity = 0.2f,
+            .light_intensity = 0.5f,
             .floor_height = 0.0f,
             .ceil_height = 3.0f,
             .wall_count = 4,
@@ -50,7 +50,7 @@ void RUN()
         old_x = state.cam.x;
         old_z = state.cam.z;
 
-        level_check_collision(&state.current_level, &state.cam.x, &state.cam.z, old_x, old_z, 0.5f);
+        level_check_collision(&state.current_level, &state.cam.x, &state.cam.z, old_x, old_z);
         state.current_sector = level_find_player_sector(&state.current_level, state.cam.x, state.cam.z);
 
         VK_BEGINTEXT;
@@ -182,21 +182,16 @@ void level_cleanup(level_t *level)
     level->sector_count = 0;
 }
 
-static bool point_in_polygon(float px, float pz, const wall_t *walls, uint32_t wall_count)
+static bool point_in_polygon(const float px, const float pz, const wall_t *walls, const uint32_t wall_count)
 {
     int crossings = 0;
 
     for (uint32_t i = 0; i < wall_count; i++)
     {
-        float x1 = walls[i].x1;
-        float z1 = walls[i].z1;
-        float x2 = walls[i].x2;
-        float z2 = walls[i].z2;
-
-        if (((z1 <= pz) && (z2 > pz)) || ((z1 > pz) && (z2 <= pz)))
+        if (((walls[i].z1 <= pz) && (walls[i].z2 > pz)) || ((walls[i].z1 > pz) && (walls[i].z2 <= pz)))
         {
-            float vt = (pz - z1) / (z2 - z1);
-            if (px < x1 + vt * (x2 - x1))
+            const float vt = (pz - walls[i].z1) / (walls[i].z2 - walls[i].z1);
+            if (px < walls[i].x1 + vt * (walls[i].x2 - walls[i].x1))
                 crossings++;
         }
     }
@@ -204,7 +199,7 @@ static bool point_in_polygon(float px, float pz, const wall_t *walls, uint32_t w
     return (crossings % 2) == 1;
 }
 
-sector_t* level_find_player_sector(level_t *level, float px, float pz)
+sector_t* level_find_player_sector(const level_t *level, const float px, const float pz)
 {
     for (uint32_t i = 0; i < level->sector_count; i++)
     {
@@ -215,19 +210,19 @@ sector_t* level_find_player_sector(level_t *level, float px, float pz)
     return NULL;
 }
 
-static void add_wall_quad(float x1, float z1,
-                          float x2, float z2,
-                          float bottom, float top,
-                          vec4 color, float u_scale)
+static void add_wall_quad(const float x1, const float z1,
+                          const float x2, const float z2,
+                          const float bottom, const float top,
+                          const vec4 color, const float u_scale)
 {
     if (state.wall_vertex_count + 6 > MAX_WALL_VERTICES)
         return;
 
-    float dx = x2 - x1;
-    float dz = z2 - z1;
-    float length = sqrtf(dx*dx + dz*dz);
-    float u_max = length * u_scale;
-    float v_max = top - bottom;
+    const float dx = x2 - x1;
+    const float dz = z2 - z1;
+    const float length = sqrtf(dx*dx + dz*dz);
+    const float u_max = length * u_scale;
+    const float v_max = top - bottom;
 
     state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
             {x1, bottom, z1}, {0.0f, 0.0f}, {color[0], color[1], color[2], color[3]}
@@ -252,19 +247,17 @@ static void add_wall_quad(float x1, float z1,
 
 static void render_wall(const wall_t *wall, const sector_t *sector)
 {
-    vec4 light_color = {
-        sector->light_intensity,
-        sector->light_intensity,
-        sector->light_intensity,
-        1.0f
-    };
-
     add_wall_quad(
         wall->x1, wall->z1,
         wall->x2, wall->z2,
         sector->floor_height,
         sector->ceil_height,
-        light_color,
+        (vec4) {
+            sector->light_intensity,
+            sector->light_intensity,
+            sector->light_intensity,
+            1.0f
+        },
         1.0f
     );
 }
@@ -277,7 +270,7 @@ static void render_sector(const sector_t *sector)
     }
 }
 
-void level_render(level_t *level)
+void level_render(const level_t *level)
 {
     state.wall_vertex_count = 0;
 
@@ -287,14 +280,14 @@ void level_render(level_t *level)
     }
 }
 
-static bool line_segment_intersect(float x1, float z1, float x2, float z2,
-                                   float x3, float z3, float x4, float z4)
+static bool line_segment_intersect(const float x1, const float z1, const float x2, const float z2,
+                                   const float x3, const float z3, const float x4, const float z4)
 {
-    float denom = (x1 - x2) * (z3 - z4) - (z1 - z2) * (x3 - x4);
+    const float denom = (x1 - x2) * (z3 - z4) - (z1 - z2) * (x3 - x4);
     if (fabsf(denom) < 0.0001f) return false;
 
-    float t = ((x1 - x3) * (z3 - z4) - (z1 - z3) * (x3 - x4)) / denom;
-    float u = -((x1 - x2) * (z1 - z3) - (z1 - z2) * (x1 - x3)) / denom;
+    const float t = ((x1 - x3) * (z3 - z4) - (z1 - z3) * (x3 - x4)) / denom;
+    const float u = -((x1 - x2) * (z1 - z3) - (z1 - z2) * (x1 - x3)) / denom;
 
     return (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f);
 }
@@ -307,12 +300,12 @@ static void handle_collision(const wall_t *wall, float *px, float *pz, float old
     *pz = old_z;
 }
 
-bool level_check_collision(level_t *level, float *px, float *pz, float old_x, float old_z, float radius)
+bool level_check_collision(const level_t *level, float *px, float *pz, const float old_x, const float old_z)
 {
     bool collided = false;
 
-    sector_t *old_sector = level_find_player_sector(level, old_x, old_z);
-    sector_t *new_sector = level_find_player_sector(level, *px, *pz);
+    const sector_t *old_sector = level_find_player_sector(level, old_x, old_z);
+    const sector_t *new_sector = level_find_player_sector(level, *px, *pz);
 
     if (old_sector)
     {
