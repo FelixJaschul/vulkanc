@@ -1,46 +1,113 @@
 #include "Engine/App.h"
 
-#define CUBE 4
+sector_t* level_find_player_sector(const level_t *level, float px, float pz);
+void level_render(const level_t *level);
+bool level_check_collision(const level_t *level, float *px, float *pz, float old_x, float old_z);
+void level_cleanup(level_t *level);
 
 void RUN()
 {
     VK_START();
+
+    {
+        const level_t level = {
+            .name = "TEST",
+            .path = NULL,
+            .sectors = NULL,
+            .sector_count = 0,
+        };
+        state.current_level = level;
+
+        const sector_t room = {
+            .id = 0,
+            .light_intensity = 0.5f,
+            .floor_height = 0.0f,
+            .ceil_height = 3.0f,
+            .wall_count = 4,
+            .walls = malloc(sizeof(wall_t) * 4)
+        };
+
+        room.walls[0] = (wall_t){0, -5.0f, -5.0f,  5.0f, -5.0f, true, NULL};
+        room.walls[1] = (wall_t){1,  5.0f, -5.0f,  5.0f,  5.0f, true, NULL};
+        room.walls[2] = (wall_t){2,  5.0f,  5.0f, -5.0f,  5.0f, true, NULL};
+        room.walls[3] = (wall_t){3, -5.0f,  5.0f, -5.0f, -5.0f, true, NULL};
+
+        state.current_level.sectors = realloc(state.current_level.sectors, sizeof(sector_t) * (state.current_level.sector_count + 1));
+        state.current_level.sectors[state.current_level.sector_count] = room;
+        state.current_level.sector_count++;
+
+        state.cam.x = 0.0f;
+        state.cam.y = 1.5f;
+        state.cam.z = 0.0f;
+
+        state.current_sector = level_find_player_sector(&state.current_level, state.cam.x, state.cam.z);
+    }
+
+    float old_x = 0.0f, old_z = 0.0f;
+
     while (VK_FRAME())
     {
+        old_x = state.cam.x;
+        old_z = state.cam.z;
+
+        level_check_collision(&state.current_level, &state.cam.x, &state.cam.z, old_x, old_z);
+        state.current_sector = level_find_player_sector(&state.current_level, state.cam.x, state.cam.z);
+
         VK_BEGINTEXT;
+        VK_DRAWTEXT(-0.9f, -0.9f, "Doom Demo");
         VK_DRAWTEXTF(-0.9f, 0.9f, "FPS:%.0f", state.fps);
-        VK_DRAWTEXTF(-0.9f, 0.8f, "X:%.2f Y:%.2f Z:%.2f", state.cam.x, state.cam.y, state.cam.z);
-        VK_DRAWTEXT(-0.9f, -0.9f, "Vulkan Demo");
-        VK_DRAWTEXTF(-0.9f, 0.7f, "SIZE:%i", CUBE*CUBE*CUBE);
+        VK_DRAWTEXTF(-0.9f, 0.8f, "Pos: X:%.2f Z:%.2f Y:%.2f", state.cam.x, state.cam.z, state.cam.y);
+
+        if (state.current_sector) VK_DRAWTEXTF(-0.9f, 0.7f, "Sector:%i Light:%.2f", state.current_sector->id, state.current_sector->light_intensity);
+        else VK_DRAWTEXT(-0.9f, 0.7f, "Sector:OUTSIDE");
     }
 
     VK_END();
+    level_cleanup(&state.current_level);
 }
 
 void RENDER()
 {
     const VkDeviceSize offsets[] = {0};
 
+    // Render level geometry
     {
-        vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, &board_descriptor_set, 0, NULL);
-        vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
-        vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.cube_buffer.buffer, offsets);
-    }
+        VK_TEXTURE("Engine/res/test.png");
+        if (state.current_sector)
+            VK_TINT(
+                state.current_sector->light_intensity,
+                state.current_sector->light_intensity,
+                state.current_sector->light_intensity, 1.0f);
 
-    {
-        VK_TEXTURE("Engine/res/checker.png");
-        VK_TINT(0.67f, 0.70f, 0.67f, 1.0f);
-        VK_DRAWCUBE(1, 0, 0, 0, 1);
-        for (int i = 0; i < CUBE; i++)
-        for (int j = 0; j < CUBE; j++)
-        for (int k = 0; k < CUBE; k++)
+        level_render(&state.current_level);
+
+        if (state.wall_vertex_count > 0)
         {
-            VK_TEXTURE("Engine/res/test.png");
-            VK_TINT(0.37f, 0.10f, 0.17f, 1.0f);
-            VK_DRAWCUBE(k-4, j-2, i-4, 0, 1);
+            mat4 view, proj, vp;
+            glm_mat4_identity(view);
+            glm_rotate(view, state.cam.pitch, (vec3){1.0f, 0.0f, 0.0f});
+            glm_rotate(view, state.cam.yaw, (vec3){0.0f, 1.0f, 0.0f});
+            glm_translate(view, (vec3){-state.cam.x, -state.cam.y, state.cam.z});
+
+            glm_perspective(glm_rad(FOV_DEGREES), (float)WIDTH / (float)HEIGHT, NEAR_PLANE, FAR_PLANE, proj);
+            glm_mat4_mul(proj, view, vp);
+
+            push_constants_textured_t pc;
+            glm_mat4_copy(vp, pc.mvp);
+            glm_vec4_copy(tint, pc.tint_color);
+
+            vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
+
+            const VkDescriptorSet *tex = current_texture ? current_texture : &board_descriptor_set;
+
+            vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, tex, 0, NULL);
+            vkCmdPushConstants(state.v.commandBuffer, state.v.textured_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_constants_textured_t), &pc);
+            vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.wall_buffer.buffer, offsets);
+            vkCmdDraw(state.v.commandBuffer, state.wall_vertex_count, 1, 0, 0);
         }
     }
 
+    // Render text overlay
     {
         VK_TEXTURE("Engine/res/font.png");
         VK_TINT(1.0f, 1.0f, 1.0f, 1.0f);
@@ -94,32 +161,185 @@ void INPUT()
         state.cam.z -= right[2] * cam_speed;
     }
 }
-/*
-void _render_wall(wall_t *wall)
-{
 
+// LEVEL RENDERING IMPLEMENTATION
+
+void level_cleanup(level_t *level)
+{
+    if (level->sectors)
+    {
+        for (uint32_t i = 0; i < level->sector_count; i++)
+        {
+            if (level->sectors[i].walls)
+            {
+                free(level->sectors[i].walls);
+                level->sectors[i].walls = NULL;
+            }
+        }
+        free(level->sectors);
+        level->sectors = NULL;
+    }
+    level->sector_count = 0;
 }
 
-void _render()
+static bool point_in_polygon(const float px, const float pz, const wall_t *walls, const uint32_t wall_count)
 {
-    for (const sector_t *sector ; state.current_level.sectors)
+    int crossings = 0;
+
+    for (uint32_t i = 0; i < wall_count; i++)
     {
-        for (const wall_t *wall ; sector->walls)
+        if (((walls[i].z1 <= pz) && (walls[i].z2 > pz)) || ((walls[i].z1 > pz) && (walls[i].z2 <= pz)))
         {
-            _render_wall(wall);
+            const float vt = (pz - walls[i].z1) / (walls[i].z2 - walls[i].z1);
+            if (px < walls[i].x1 + vt * (walls[i].x2 - walls[i].x1))
+                crossings++;
         }
+    }
+
+    return (crossings % 2) == 1;
+}
+
+sector_t* level_find_player_sector(const level_t *level, const float px, const float pz)
+{
+    for (uint32_t i = 0; i < level->sector_count; i++)
+    {
+        sector_t *sector = &level->sectors[i];
+        if (point_in_polygon(px, pz, sector->walls, sector->wall_count))
+            return sector;
+    }
+    return NULL;
+}
+
+static void add_wall_quad(const float x1, const float z1,
+                          const float x2, const float z2,
+                          const float bottom, const float top,
+                          const vec4 color, const float u_scale)
+{
+    if (state.wall_vertex_count + 6 > MAX_WALL_VERTICES)
+        return;
+
+    const float dx = x2 - x1;
+    const float dz = z2 - z1;
+    const float length = sqrtf(dx*dx + dz*dz);
+    const float u_max = length * u_scale;
+    const float v_max = top - bottom;
+
+    state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+            {x1, bottom, z1}, {0.0f, 0.0f}, {color[0], color[1], color[2], color[3]}
+    };
+    state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+            {x2, bottom, z2}, {u_max, 0.0f}, {color[0], color[1], color[2], color[3]}
+    };
+    state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+            {x2, top, z2}, {u_max, v_max}, {color[0], color[1], color[2], color[3]}
+    };
+
+    state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+            {x1, bottom, z1}, {0.0f, 0.0f}, {color[0], color[1], color[2], color[3]}
+    };
+    state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+            {x2, top, z2}, {u_max, v_max}, {color[0], color[1], color[2], color[3]}
+    };
+    state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+            {x1, top, z1}, {0.0f, v_max}, {color[0], color[1], color[2], color[3]}
+    };
+}
+
+static void render_wall(const wall_t *wall, const sector_t *sector)
+{
+    add_wall_quad(
+        wall->x1, wall->z1,
+        wall->x2, wall->z2,
+        sector->floor_height,
+        sector->ceil_height,
+        (vec4) {
+            sector->light_intensity,
+            sector->light_intensity,
+            sector->light_intensity,
+            1.0f
+        },
+        1.0f
+    );
+}
+
+static void render_sector(const sector_t *sector)
+{
+    for (uint32_t i = 0; i < sector->wall_count; i++)
+    {
+        render_wall(&sector->walls[i], sector);
     }
 }
 
-bool _updatePlayer()
+void level_render(const level_t *level)
 {
-    for (const sector_t *sector ; state.current_level.blocks->sectors)
-    {
-        for (const wall_t *wall ; sector->walls)
-        {
+    state.wall_vertex_count = 0;
 
+    for (uint32_t i = 0; i < level->sector_count; i++)
+    {
+        render_sector(&level->sectors[i]);
+    }
+}
+
+static bool line_segment_intersect(const float x1, const float z1, const float x2, const float z2,
+                                   const float x3, const float z3, const float x4, const float z4)
+{
+    const float denom = (x1 - x2) * (z3 - z4) - (z1 - z2) * (x3 - x4);
+    if (fabsf(denom) < 0.0001f) return false;
+
+    const float t = ((x1 - x3) * (z3 - z4) - (z1 - z3) * (x3 - x4)) / denom;
+    const float u = -((x1 - x2) * (z1 - z3) - (z1 - z2) * (x1 - x3)) / denom;
+
+    return (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f);
+}
+
+static void handle_collision(const wall_t *wall, float *px, float *pz, float old_x, float old_z)
+{
+    if (!wall->is_solid) return;
+
+    *px = old_x;
+    *pz = old_z;
+}
+
+bool level_check_collision(const level_t *level, float *px, float *pz, const float old_x, const float old_z)
+{
+    bool collided = false;
+
+    const sector_t *old_sector = level_find_player_sector(level, old_x, old_z);
+    const sector_t *new_sector = level_find_player_sector(level, *px, *pz);
+
+    if (old_sector)
+    {
+        for (uint32_t i = 0; i < old_sector->wall_count; i++)
+        {
+            const wall_t *wall = &old_sector->walls[i];
+            if (!wall->is_solid) continue;
+
+            if (line_segment_intersect(old_x, old_z, *px, *pz,
+                                       wall->x1, wall->z1, wall->x2, wall->z2))
+            {
+                handle_collision(wall, px, pz, old_x, old_z);
+                collided = true;
+            }
         }
     }
-}*/
+
+    if (new_sector && new_sector != old_sector)
+    {
+        for (uint32_t i = 0; i < new_sector->wall_count; i++)
+        {
+            const wall_t *wall = &new_sector->walls[i];
+            if (!wall->is_solid) continue;
+
+            if (line_segment_intersect(old_x, old_z, *px, *pz,
+                                       wall->x1, wall->z1, wall->x2, wall->z2))
+            {
+                handle_collision(wall, px, pz, old_x, old_z);
+                collided = true;
+            }
+        }
+    }
+
+    return collided;
+}
 
 ENGINE_ENTRY_POINT
