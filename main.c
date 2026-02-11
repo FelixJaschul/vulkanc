@@ -1,6 +1,7 @@
 #include "Engine/App.h"
 
 sector_t* level_find_player_sector(const level_t *level, float px, float pz);
+level_t level_load_from_file(const char* filepath);
 void level_render(const level_t *level);
 bool level_check_collision(const level_t *level, float *px, float *pz, float old_x, float old_z);
 void level_cleanup(level_t *level);
@@ -9,47 +10,20 @@ void RUN()
 {
     VK_START();
 
-    {
-        const level_t level = {
-            .name = "TEST",
-            .path = NULL,
-            .sectors = NULL,
-            .sector_count = 0,
-        };
-        state.current_level = level;
+    state.current_level = level_load_from_file("Engine/res/level.txt");
+    ASSERT(state.current_level.sectors, "Failed to load level file!");
 
-        const sector_t room = {
-            .id = 0,
-            .light_intensity = 0.5f,
-            .floor_height = 0.0f,
-            .ceil_height = 3.0f,
-            .wall_count = 4,
-            .walls = malloc(sizeof(wall_t) * 4)
-        };
-
-        room.walls[0] = (wall_t){0, -5.0f, -5.0f,  5.0f, -5.0f, true, NULL};
-        room.walls[1] = (wall_t){1,  5.0f, -5.0f,  5.0f,  5.0f, true, NULL};
-        room.walls[2] = (wall_t){2,  5.0f,  5.0f, -5.0f,  5.0f, true, NULL};
-        room.walls[3] = (wall_t){3, -5.0f,  5.0f, -5.0f, -5.0f, true, NULL};
-
-        state.current_level.sectors = realloc(state.current_level.sectors, sizeof(sector_t) * (state.current_level.sector_count + 1));
-        state.current_level.sectors[state.current_level.sector_count] = room;
-        state.current_level.sector_count++;
-
-        state.cam.x = 0.0f;
-        state.cam.y = 1.5f;
-        state.cam.z = 0.0f;
-
-        state.current_sector = level_find_player_sector(&state.current_level, state.cam.x, state.cam.z);
-    }
+    state.cam.x = 0.0f;
+    state.cam.y = 1.5f;
+    state.cam.z = 0.0f;
+    state.cam.yaw = 0.0f;
+    state.current_sector = level_find_player_sector(&state.current_level, state.cam.x, state.cam.z);
 
     float old_x = 0.0f, old_z = 0.0f;
-
     while (VK_FRAME())
     {
         old_x = state.cam.x;
         old_z = state.cam.z;
-
         level_check_collision(&state.current_level, &state.cam.x, &state.cam.z, old_x, old_z);
         state.current_sector = level_find_player_sector(&state.current_level, state.cam.x, state.cam.z);
 
@@ -57,7 +31,6 @@ void RUN()
         VK_DRAWTEXT(-0.9f, -0.9f, "Doom Demo");
         VK_DRAWTEXTF(-0.9f, 0.9f, "FPS:%.0f", state.fps);
         VK_DRAWTEXTF(-0.9f, 0.8f, "Pos: X:%.2f Z:%.2f Y:%.2f", state.cam.x, state.cam.z, state.cam.y);
-
         if (state.current_sector) VK_DRAWTEXTF(-0.9f, 0.7f, "Sector:%i Light:%.2f", state.current_sector->id, state.current_sector->light_intensity);
         else VK_DRAWTEXT(-0.9f, 0.7f, "Sector:OUTSIDE");
     }
@@ -66,19 +39,16 @@ void RUN()
     level_cleanup(&state.current_level);
 }
 
+
 void RENDER()
 {
     const VkDeviceSize offsets[] = {0};
 
+    VK_TEXTURE("Engine/res/checker.png");
+    VK_TINT(1.0f, 1.0f, 1.0f, 1.0f);
+
     // Render level geometry
     {
-        VK_TEXTURE("Engine/res/test.png");
-        if (state.current_sector)
-            VK_TINT(
-                state.current_sector->light_intensity,
-                state.current_sector->light_intensity,
-                state.current_sector->light_intensity, 1.0f);
-
         level_render(&state.current_level);
 
         if (state.wall_vertex_count > 0)
@@ -87,7 +57,7 @@ void RENDER()
             glm_mat4_identity(view);
             glm_rotate(view, state.cam.pitch, (vec3){1.0f, 0.0f, 0.0f});
             glm_rotate(view, state.cam.yaw, (vec3){0.0f, 1.0f, 0.0f});
-            glm_translate(view, (vec3){-state.cam.x, -state.cam.y, state.cam.z});
+            glm_translate(view, (vec3){-state.cam.x, -state.cam.y, -state.cam.z});
 
             glm_perspective(glm_rad(FOV_DEGREES), (float)WIDTH / (float)HEIGHT, NEAR_PLANE, FAR_PLANE, proj);
             glm_mat4_mul(proj, view, vp);
@@ -110,7 +80,7 @@ void RENDER()
     // Render text overlay
     {
         VK_TEXTURE("Engine/res/font.png");
-        VK_TINT(1.0f, 1.0f, 1.0f, 1.0f);
+        VK_TINT(1.0f, 1.0f, 0.0f, 1.0f);
         mat4 proj;
         glm_ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f, proj);
 
@@ -137,8 +107,8 @@ void INPUT()
     if (glfwGetKey(state.glfw.win, GLFW_KEY_UP) == GLFW_PRESS) state.cam.pitch += rot_speed;
     if (glfwGetKey(state.glfw.win, GLFW_KEY_DOWN) == GLFW_PRESS) state.cam.pitch -= rot_speed;
 
-    const vec3 forward = {sinf(state.cam.yaw), 0.0f, cosf(state.cam.yaw)};
-    const vec3 right = {cosf(state.cam.yaw), 0.0f, -sinf(state.cam.yaw)};
+    const vec3 forward = {sinf(state.cam.yaw), 0.0f, -cosf(state.cam.yaw)};
+    const vec3 right = {cosf(state.cam.yaw), 0.0f, sinf(state.cam.yaw)};
 
     if (glfwGetKey(state.glfw.win, GLFW_KEY_W) == GLFW_PRESS)
     {
@@ -188,10 +158,11 @@ static bool point_in_polygon(const float px, const float pz, const wall_t *walls
 
     for (uint32_t i = 0; i < wall_count; i++)
     {
-        if (((walls[i].z1 <= pz) && (walls[i].z2 > pz)) || ((walls[i].z1 > pz) && (walls[i].z2 <= pz)))
+        const wall_t *w = &walls[i];
+        if (((w->z1 <= pz) && (w->z2 > pz)) || ((w->z2 <= pz) && (w->z1 > pz)))
         {
-            const float vt = (pz - walls[i].z1) / (walls[i].z2 - walls[i].z1);
-            if (px < walls[i].x1 + vt * (walls[i].x2 - walls[i].x1))
+            const float vt = (pz - w->z1) / (w->z2 - w->z1);
+            if (px < w->x1 + vt * (w->x2 - w->x1))
                 crossings++;
         }
     }
@@ -247,15 +218,27 @@ static void add_wall_quad(const float x1, const float z1,
 
 static void render_wall(const wall_t *wall, const sector_t *sector)
 {
+    if (wall->is_invisible) return;
+
+    float r = wall->color[0];
+    float g = wall->color[1];
+    float b = wall->color[2];
+
+    // Rainbow effect for testing
+    /*const float t = (float)glfwGetTime() * 2.0f;
+    r *= (sinf(t + wall->id * 0.5f) * 0.5f + 0.5f);
+    g *= (sinf(t + wall->id * 0.5f + 2.094f) * 0.5f + 0.5f);
+    b *= (sinf(t + wall->id * 0.5f + 4.188f) * 0.5f + 0.5f);*/
+
     add_wall_quad(
         wall->x1, wall->z1,
         wall->x2, wall->z2,
         sector->floor_height,
         sector->ceil_height,
         (vec4) {
-            sector->light_intensity,
-            sector->light_intensity,
-            sector->light_intensity,
+            r * sector->light_intensity,
+            g * sector->light_intensity,
+            b * sector->light_intensity,
             1.0f
         },
         1.0f
@@ -340,6 +323,142 @@ bool level_check_collision(const level_t *level, float *px, float *pz, const flo
     }
 
     return collided;
+}
+
+level_t level_load_from_file(const char* filepath)
+{
+    level_t level = {
+        .name = "LOADED",
+        .path = filepath,
+        .sectors = NULL,
+        .sector_count = 0
+    };
+
+    FILE* file = fopen(filepath, "r");
+    if (!file) {
+        fprintf(stderr, "ERROR: Could not open level file: %s\n", filepath);
+        return level;
+    }
+
+    char line[512];
+    enum { NONE, WALLS, SECTORS } section = NONE;
+
+    // Temporary storage for walls (max 256 walls)
+    #define MAX_TEMP_WALLS 256
+    wall_t temp_walls[MAX_TEMP_WALLS];
+    int wall_count = 0;
+
+    while (fgets(line, sizeof(line), file)) {
+        if (line[0] == '\n' || line[0] == '#' || line[0] == '\0') continue;
+
+        if (strncmp(line, "[WALLS]", 7) == 0) {
+            section = WALLS;
+            continue;
+        }
+        if (strncmp(line, "[SECTORS]", 9) == 0) {
+            section = SECTORS;
+            continue;
+        }
+
+        // Parse based on current section
+        if (section == WALLS)
+        {
+            int id, is_solid, is_inv = 0;
+            float x1, z1, x2, z2;
+            float r = 1.0f, g = 1.0f, b = 1.0f;
+
+            const int read = sscanf(line, "%d %f %f %f %f %d %d %f %f %f", &id, &x1, &z1, &x2, &z2, &is_solid, &is_inv, &r, &g, &b);
+            if (read >= 6) {
+                if (id >= 0 && id < MAX_TEMP_WALLS) {
+                    temp_walls[id] = (wall_t){
+                        .id = id,
+                        .x1 = x1, .z1 = z1,
+                        .x2 = x2, .z2 = z2,
+                        .color = {r, g, b},
+                        .is_solid = (is_solid != 0),
+                        .is_invisible = (read >= 7 && is_inv != 0),
+                        .texture_path = NULL
+                    };
+                    if (id >= wall_count) wall_count = id + 1;
+                }
+            }
+        }
+        else if (section == SECTORS)
+        {
+            int sector_id;
+            float light, floor_h, ceil_h;
+
+            // Parse sector header
+            const char* ptr = line;
+            if (sscanf(ptr, "%d %f %f %f", &sector_id, &light, &floor_h, &ceil_h) == 4)
+            {
+                // Skip past the first 4 values
+                int values_read = 0;
+                while (*ptr && values_read < 4) {
+                    while (*ptr && isspace(*ptr)) ptr++;
+                    while (*ptr && !isspace(*ptr)) ptr++;
+                    values_read++;
+                }
+
+                // Count wall IDs
+                int wall_ids[MAX_TEMP_WALLS];
+                int wall_id_count = 0;
+                int wall_id;
+                int n;
+
+                while (sscanf(ptr, "%d%n", &wall_id, &n) == 1) {
+                    wall_ids[wall_id_count++] = wall_id;
+                    ptr += n;
+                }
+
+                // Create sector
+                const sector_t new_sector = {
+                    .id = sector_id,
+                    .light_intensity = light,
+                    .floor_height = floor_h,
+                    .ceil_height = ceil_h,
+                    .wall_count = wall_id_count,
+                    .walls = malloc(sizeof(wall_t) * wall_id_count)
+                };
+
+                // Copy walls from temp storage
+                for (int i = 0; i < wall_id_count; i++)
+                    if (wall_ids[i] >= 0 && wall_ids[i] < wall_count)
+                        new_sector.walls[i] = temp_walls[wall_ids[i]];
+
+                // Enclosure check
+                bool enclosed = true;
+                for (int i = 0; i < wall_id_count; i++) {
+                    const int next = (i + 1) % wall_id_count;
+                    if (fabsf(new_sector.walls[i].x2 - new_sector.walls[next].x1) > 0.001f ||
+                        fabsf(new_sector.walls[i].z2 - new_sector.walls[next].z1) > 0.001f) {
+                        enclosed = false;
+                        break;
+                    }
+                }
+
+                if (!enclosed) {
+                    fprintf(stderr, "ERROR: Sector %d walls not done (not enclosed)\n", sector_id);
+                    for (int i = 0; i < wall_id_count; i++) {
+                        fprintf(stderr, "  Wall %d: (%f, %f) -> (%f, %f)\n",
+                               new_sector.walls[i].id,
+                               new_sector.walls[i].x1, new_sector.walls[i].z1,
+                               new_sector.walls[i].x2, new_sector.walls[i].z2);
+                    }
+                    exit(1);
+                }
+
+                // Add sector to level
+                level.sectors = realloc(level.sectors, sizeof(sector_t) * (level.sector_count + 1));
+                level.sectors[level.sector_count] = new_sector;
+                level.sector_count++;
+            }
+        }
+    }
+
+    fclose(file);
+    printf("Loaded level: %d sectors, %d walls\n", level.sector_count, wall_count);
+    return level;
 }
 
 ENGINE_ENTRY_POINT

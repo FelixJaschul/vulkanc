@@ -9,6 +9,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <string.h>
+#include <ctype.h>
 #include <math.h>
 
 // Engine Application API
@@ -124,7 +126,9 @@ typedef struct
     int id;
     float x1, z1;
     float x2, z2;
+    vec3 color;
     bool is_solid;
+    bool is_invisible;
     const char* texture_path;
 } wall_t;
 
