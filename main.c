@@ -199,57 +199,99 @@ static void add_wall_quad(const float x1, const float z1,
             {x1, bottom, z1}, {0.0f, 0.0f}, {color[0], color[1], color[2], color[3]}
     };
     state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
-            {x2, bottom, z2}, {u_max, 0.0f}, {color[0], color[1], color[2], color[3]}
+            {x2, top, z2}, {u_max, v_max}, {color[0], color[1], color[2], color[3]}
     };
     state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
-            {x2, top, z2}, {u_max, v_max}, {color[0], color[1], color[2], color[3]}
+            {x2, bottom, z2}, {u_max, 0.0f}, {color[0], color[1], color[2], color[3]}
     };
 
     state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
             {x1, bottom, z1}, {0.0f, 0.0f}, {color[0], color[1], color[2], color[3]}
     };
     state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
-            {x2, top, z2}, {u_max, v_max}, {color[0], color[1], color[2], color[3]}
-    };
-    state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
             {x1, top, z1}, {0.0f, v_max}, {color[0], color[1], color[2], color[3]}
     };
-}
-
-static void render_wall(const wall_t *wall, const sector_t *sector)
-{
-    if (wall->is_invisible) return;
-
-    float r = wall->color[0];
-    float g = wall->color[1];
-    float b = wall->color[2];
-
-    // Rainbow effect for testing
-    /*const float t = (float)glfwGetTime() * 2.0f;
-    r *= (sinf(t + wall->id * 0.5f) * 0.5f + 0.5f);
-    g *= (sinf(t + wall->id * 0.5f + 2.094f) * 0.5f + 0.5f);
-    b *= (sinf(t + wall->id * 0.5f + 4.188f) * 0.5f + 0.5f);*/
-
-    add_wall_quad(
-        wall->x1, wall->z1,
-        wall->x2, wall->z2,
-        sector->floor_height,
-        sector->ceil_height,
-        (vec4) {
-            r * sector->light_intensity,
-            g * sector->light_intensity,
-            b * sector->light_intensity,
-            1.0f
-        },
-        1.0f
-    );
+    state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+            {x2, top, z2}, {u_max, v_max}, {color[0], color[1], color[2], color[3]}
+    };
 }
 
 static void render_sector(const sector_t *sector)
 {
+    const vec4 floor_color = {
+        0.3f * sector->light_intensity,
+        0.3f * sector->light_intensity,
+        0.3f * sector->light_intensity,
+        1.0f
+    };
+
+    const vec4 ceil_color = {
+        0.7f * sector->light_intensity,
+        0.7f * sector->light_intensity,
+        0.7f * sector->light_intensity,
+        1.0f
+    };
+
     for (uint32_t i = 0; i < sector->wall_count; i++)
     {
-        render_wall(&sector->walls[i], sector);
+        const wall_t *wall = &sector->walls[i];
+
+        if (!wall->is_invisible)
+        {
+            add_wall_quad(
+                wall->x1, wall->z1,
+                wall->x2, wall->z2,
+                sector->floor_height,
+                sector->ceil_height,
+                (vec4) {
+                    wall->color[0] * sector->light_intensity,
+                    wall->color[1] * sector->light_intensity,
+                    wall->color[2] * sector->light_intensity,
+                    1.0f
+                },
+                1.0f
+            );
+        }
+
+        if (i > 0)
+        {
+            if (state.wall_vertex_count + 6 <= MAX_WALL_VERTICES)
+            {
+                // Floor
+                state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+                            {sector->walls[0].x1, sector->floor_height, sector->walls[0].z1},
+                            {sector->walls[0].x1, sector->walls[0].z1},
+                            {floor_color[0], floor_color[1], floor_color[2], floor_color[3]}
+                };
+                state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+                            {wall->x1, sector->floor_height, wall->z1},
+                            {wall->x1, wall->z1},
+                            {floor_color[0], floor_color[1], floor_color[2], floor_color[3]}
+                };
+                state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+                            {wall->x2, sector->floor_height, wall->z2},
+                            {wall->x2, wall->z2},
+                            {floor_color[0], floor_color[1], floor_color[2], floor_color[3]}
+                };
+
+                // Ceil
+                state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+                            {sector->walls[0].x1, sector->ceil_height, sector->walls[0].z1},
+                            {sector->walls[0].x1, sector->walls[0].z1},
+                            {ceil_color[0], ceil_color[1], ceil_color[2], ceil_color[3]}
+                };
+                state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+                            {wall->x2, sector->ceil_height, wall->z2},
+                            {wall->x2, wall->z2},
+                            {ceil_color[0], ceil_color[1], ceil_color[2], ceil_color[3]}
+                };
+                state.wall_vertices[state.wall_vertex_count++] = (vertex_t){
+                            {wall->x1, sector->ceil_height, wall->z1},
+                            {wall->x1, wall->z1},
+                            {ceil_color[0], ceil_color[1], ceil_color[2], ceil_color[3]}
+                };
+            }
+        }
     }
 }
 
