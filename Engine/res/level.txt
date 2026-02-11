@@ -1,7 +1,7 @@
-# Tutorial Level - DOOM Style
 # Format: [WALLS] section defines all walls, [SECTORS] section groups them into rooms
 
 [WALLS]
+# ID, X1, Z1, X2, Z2, IsSolid, IsInvisible, R, G, B
 # Starting Room (0-7) - Octagonal spawn area
 0 -2.0 -2.0 2.0 -2.0 1 0 1.0 1.0 1.0
 1 2.0 -2.0 3.0 -1.0 0 1 1.0 1.0 1.0
@@ -55,7 +55,7 @@
 35 16.0 -4.0 16.0 -8.0 0 1 0.5 1.0 1.0
 
 [SECTORS]
-# Sector ID, Light, FloorHeight, CeilHeight, Wall IDs...
+# ID, Light, FloorHeight, CeilHeight, Wall IDs...
 # Starting Room - Bright spawn area
 0 0.8 0.0 3.0 0 1 2 3 4 5 6 7
 
