@@ -13,6 +13,8 @@
 #include <ctype.h>
 #include <math.h>
 
+#include "level.h"
+
 // Engine Application API
 // Simple interface for creating Vulkan applications
 
@@ -120,34 +122,6 @@ typedef struct
     VkDescriptorSet descriptor_set;
     bool loaded;
 } texture_cache_entry_t;
-
-typedef struct
-{
-    int id;
-    float x1, z1;
-    float x2, z2;
-    vec3 color;
-    bool is_solid;
-    bool is_invisible;
-    const char* texture_path;
-} wall_t;
-
-typedef struct
-{
-    int id;
-    float light_intensity; // 0.0 to 1.0
-    wall_t *walls;
-    uint32_t wall_count;
-    float floor_height, ceil_height;
-} sector_t;
-
-typedef struct
-{
-    const char* name;
-    const char* path;
-    sector_t *sectors;
-    uint32_t sector_count;
-} level_t;
 
 typedef struct
 {

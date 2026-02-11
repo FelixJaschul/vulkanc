@@ -1265,7 +1265,7 @@ int VK_FRAME()
     return !glfwWindowShouldClose(state.glfw.win);
 }
 
-void level_cleanup(level_t *level);
+
 void VK_END(void)
 {
     vkDeviceWaitIdle(state.v.device);
