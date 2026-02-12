@@ -163,12 +163,16 @@ typedef struct
 
 #define MAX_TEXT_VERTICES 10000
 #define MAX_WALL_VERTICES 10000
+#define MAX_LEVELS 10
 typedef struct
 {
     glfw_t glfw;
     vulkan_t v;
     cam_t cam;
-    level_t current_level;
+
+    int level_id;
+    int level_count;
+    level_t levels[MAX_LEVELS];
 
     double last_time;
     double last_frame_time;

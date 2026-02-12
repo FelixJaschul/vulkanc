@@ -65,6 +65,9 @@
 # Main Hall - Medium lighting, high ceiling
 2 0.5 0.0 4.0 12 13 14 15 16 17 18 19 39
 
+# Side Alcove - Very dark secret area
+3 0.3 0.5 3.5 20 21 22 23 37
+
 # Exit Corridor - Brightening towards exit
 4 0.7 0.0 3.0 38 27 26 25 24
 

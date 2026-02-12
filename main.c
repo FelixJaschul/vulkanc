@@ -8,33 +8,38 @@ void RUN()
 {
     VK_START();
 
-    state.current_level = level_load_from_file("Engine/res/level.txt");
-    ASSERT(state.current_level.sectors, "Failed to load level file!");
+    state.level_count = 0;
+    state.levels[state.level_count++] = level_load_from_file("Engine/res/level.txt");
+    state.levels[state.level_count++] = level_load_from_file("Engine/res/backup.txt");
+    ASSERT(state.level_count <= MAX_LEVELS, "too many levels loaded");
+    
+    state.level_id = 0;
 
     state.cam.x = 0.0f;
     state.cam.y = 1.5f;
     state.cam.z = 0.0f;
     state.cam.yaw = 0.0f;
-    state.current_sector = level_find_player_sector(&state.current_level, state.cam.x, state.cam.z);
+    state.current_sector = level_find_player_sector(&state.levels[state.level_id], state.cam.x, state.cam.z);
 
     float old_x = 0.0f, old_z = 0.0f;
     while (VK_FRAME())
     {
         old_x = state.cam.x;
         old_z = state.cam.z;
-        level_check_collision(&state.current_level, &state.cam.x, &state.cam.z, old_x, old_z);
-        state.current_sector = level_find_player_sector(&state.current_level, state.cam.x, state.cam.z);
+        level_check_collision(&state.levels[state.level_id], &state.cam.x, &state.cam.z, old_x, old_z);
+        state.current_sector = level_find_player_sector(&state.levels[state.level_id], state.cam.x, state.cam.z);
 
         VK_BEGINTEXT;
         VK_DRAWTEXT(-0.9f, -0.9f, "Doom Demo");
         VK_DRAWTEXTF(-0.9f, 0.9f, "FPS:%.0f", state.fps);
         VK_DRAWTEXTF(-0.9f, 0.8f, "Pos: X:%.2f Z:%.2f Y:%.2f", state.cam.x, state.cam.z, state.cam.y);
         if (state.current_sector) VK_DRAWTEXTF(-0.9f, 0.7f, "Sector:%i Light:%.2f", state.current_sector->id, state.current_sector->light_intensity);
-        else VK_DRAWTEXT(-0.9f, 0.7f, "Sector:OUTSIDE");
+        else VK_DRAWTEXT(-0.9f, 0.7f, "Sector:NO_LEVEL_FOUND");
+        VK_DRAWTEXTF(-0.9f, 0.6f, "Level:%d", state.level_id);
     }
 
     VK_END();
-    level_cleanup(&state.current_level);
+    for (int i = 0; i < state.level_count; i++) level_cleanup(&state.levels[i]);
 }
 
 
@@ -47,7 +52,7 @@ void RENDER()
         VK_TEXTURE("Engine/res/checker.png");
         VK_TINT(1.0f, 1.0f, 1.0f, 1.0f);
         VK_TILETEXTURE(3.0f);
-        level_render(&state.current_level);
+        level_render(&state.levels[state.level_id]);
 
         if (state.wall_vertex_count > 0)
         {
@@ -127,6 +132,17 @@ void INPUT()
         state.cam.x -= right[0] * cam_speed;
         state.cam.z -= right[2] * cam_speed;
     }
+
+    static bool b_pressed = false;
+    if (glfwGetKey(state.glfw.win, GLFW_KEY_B) == GLFW_PRESS)
+    {
+        if (!b_pressed)
+        {
+            state.level_id = (state.level_id + 1) % state.level_count;
+            b_pressed = true;
+        }
+    }
+    else b_pressed = false;
 }
 
 ENGINE_ENTRY_POINT
