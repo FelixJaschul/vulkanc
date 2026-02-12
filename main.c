@@ -1,8 +1,8 @@
 #include "Engine/App.h"
+#include "Engine/util.h"
 
 #define LEVEL_RENDERING
 #include "level.h"
-#include "Engine/util.h"
 
 void RUN()
 {
