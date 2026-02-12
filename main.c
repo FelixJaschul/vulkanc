@@ -67,9 +67,7 @@ void RENDER()
 
             vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
 
-            const VkDescriptorSet *tex = current_texture ? current_texture : &board_descriptor_set;
-
-            vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, tex, 0, NULL);
+            vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, current_texture, 0, NULL);
             vkCmdPushConstants(state.v.commandBuffer, state.v.textured_pipeline.layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_constants_textured_t), &pc);
             vkCmdBindVertexBuffers(state.v.commandBuffer, 0, 1, &state.v.wall_buffer.buffer, offsets);
             vkCmdDraw(state.v.commandBuffer, state.wall_vertex_count, 1, 0, 0);
