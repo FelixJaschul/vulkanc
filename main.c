@@ -42,11 +42,11 @@ void RENDER()
 {
     const VkDeviceSize offsets[] = {0};
 
-    VK_TEXTURE("Engine/res/checker.png");
-    VK_TINT(1.0f, 1.0f, 1.0f, 1.0f);
-
     // Render level geometry
     {
+        VK_TEXTURE("Engine/res/checker.png");
+        VK_TINT(1.0f, 1.0f, 1.0f, 1.0f);
+        VK_TILETEXTURE(3.0f);
         level_render(&state.current_level);
 
         if (state.wall_vertex_count > 0)
@@ -63,6 +63,7 @@ void RENDER()
             push_constants_textured_t pc;
             glm_mat4_copy(vp, pc.mvp);
             glm_vec4_copy(tint, pc.tint_color);
+            pc.tiling = texture_tiling;
 
             vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
 
