@@ -117,7 +117,26 @@ static void add_wall_quad(const float x1, const float z1,
     };
 }
 
-static void render_sector(const sector_t *sector)
+#define points_match(ax, az, bx, bz) (fabsf(ax - bx) < 0.001f && fabsf(az - bz) < 0.001f)
+
+static const sector_t* find_adjacent_sector(const level_t *level, const sector_t *current, const wall_t *wall)
+{
+    for (uint32_t si = 0; si < level->sector_count; ++si)
+    {
+        const sector_t *s = &level->sectors[si];
+        if (s == current) continue;
+        for (uint32_t wi = 0; wi < s->wall_count; ++wi)
+        {
+            const wall_t *w = &s->walls[wi];
+            if ((points_match(wall->x1, wall->z1, w->x1, w->z1) && points_match(wall->x2, wall->z2, w->x2, w->z2)) ||
+                (points_match(wall->x1, wall->z1, w->x2, w->z2) && points_match(wall->x2, wall->z2, w->x1, w->z1)))
+                return s;
+        }
+    }
+    return NULL;
+}
+
+static void render_sector(const level_t *level, const sector_t *sector)
 {
     const vec4 floor_color = {
         0.3f * sector->light_intensity,
@@ -137,21 +156,61 @@ static void render_sector(const sector_t *sector)
     {
         const wall_t *wall = &sector->walls[i];
 
-        if (!wall->is_invisible)
         {
-            add_wall_quad(
-                wall->x1, wall->z1,
-                wall->x2, wall->z2,
-                sector->floor_height,
-                sector->ceil_height,
-                (vec4) {
-                    wall->color[0] * sector->light_intensity,
-                    wall->color[1] * sector->light_intensity,
-                    wall->color[2] * sector->light_intensity,
-                    1.0f
-                },
+            const vec4 wall_color = {
+                wall->color[0] * sector->light_intensity,
+                wall->color[1] * sector->light_intensity,
+                wall->color[2] * sector->light_intensity,
                 1.0f
-            );
+            };
+
+            if (!wall->is_invisible)
+            {
+                add_wall_quad(
+                    wall->x1, wall->z1,
+                    wall->x2, wall->z2,
+                    sector->floor_height,
+                    sector->ceil_height,
+                    wall_color,
+                    1.0f
+                );
+            }
+            else
+            {
+                // render top and bottom of sector if wall / door is invisible
+                const sector_t *adj = find_adjacent_sector(level, sector, wall);
+                if (adj)
+                {
+                    const float eps = 0.0001f;
+                    const float f_bottom = fminf(sector->floor_height, adj->floor_height);
+                    const float f_top    = fmaxf(sector->floor_height, adj->floor_height);
+                    if (f_top - f_bottom > eps)
+                    {
+                        add_wall_quad(
+                            wall->x1, wall->z1,
+                            wall->x2, wall->z2,
+                            f_bottom,
+                            f_top,
+                            wall_color,
+                            1.0f
+                        );
+                    }
+
+                    const float c_bottom = fminf(sector->ceil_height, adj->ceil_height);
+                    const float c_top    = fmaxf(sector->ceil_height, adj->ceil_height);
+                    if (c_top - c_bottom > eps)
+                    {
+                        add_wall_quad(
+                            wall->x1, wall->z1,
+                            wall->x2, wall->z2,
+                            c_bottom,
+                            c_top,
+                            wall_color,
+                            1.0f
+                        );
+                    }
+                }
+            }
         }
 
         if (i > 0)
@@ -202,7 +261,7 @@ void level_render(const level_t *level)
 
     for (uint32_t i = 0; i < level->sector_count; i++)
     {
-        render_sector(&level->sectors[i]);
+        render_sector(level, &level->sectors[i]);
     }
 }
 
