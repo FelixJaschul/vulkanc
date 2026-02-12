@@ -57,13 +57,13 @@
 [SECTORS]
 # ID, Light, FloorHeight, CeilHeight, Wall IDs...
 # Starting Room - Bright spawn area
-0 0.8 0.0 3.0 0 1 2 3 4 5 6 7
+0 0.7 0.0 3.0 0 1 2 3 4 5 6 7
 
 # Corridor - Dim connecting passage
 1 0.4 0.0 2.5 8 9 10 11 36
 
 # Main Hall - Medium lighting, high ceiling
-2 0.6 0.0 4.0 12 13 14 15 16 17 18 19 39
+2 0.5 0.0 4.0 12 13 14 15 16 17 18 19 39
 
 # Side Alcove - Very dark secret area
 3 0.3 0.5 3.5 20 21 22 23 37

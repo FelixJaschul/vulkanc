@@ -197,6 +197,7 @@ extern glyph_uv_t glyphs[128];
 typedef struct {
     mat4 mvp;
     vec4 tint_color;
+    float tiling;
 } push_constants_textured_t;
 
 void VK_START(void);
@@ -209,5 +210,3 @@ typedef struct {
     vec3 scale;
     vec4 color;
 } cube_instance_t;
-
-#include "util.h"

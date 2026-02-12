@@ -10,6 +10,7 @@ layout(location = 1) out vec4 frag_color;
 layout(push_constant) uniform PushConstants {
     mat4 mvp;
     vec4 tint_color;
+    float tiling;
 } pc;
 
 void main()

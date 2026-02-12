@@ -1,4 +1,5 @@
 #pragma once
+#include "App.h"
 
 #define VK_ASSERT(result, msg) do { \
     if ((result) != VK_SUCCESS) { \
@@ -17,6 +18,11 @@
 static vec4 tint = {1, 1 ,1 ,1};
 #define VK_TINT(r, g, b, a) do { \
     tint[0] = r; tint[1] = g; tint[2] = b; tint[3] = a; \
+} while(0)
+
+static float texture_tiling = 1.0f;
+#define VK_TILETEXTURE(scale) do { \
+    texture_tiling = scale; \
 } while(0)
 
 VkDescriptorSet* vk_get_texture(const char* path);
@@ -95,6 +101,7 @@ static inline void _draw_cube(const float x, const float y, const float z, const
 
     glm_mat4_copy(mvp, pc.mvp);
     glm_vec4_copy(tint, pc.tint_color);
+    pc.tiling = texture_tiling;
 
     const VkDescriptorSet *tex_to_use = current_texture ? current_texture : &board_descriptor_set;
     vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.layout, 0, 1, tex_to_use, 0, NULL);

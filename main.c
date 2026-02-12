@@ -2,6 +2,7 @@
 
 #define LEVEL_RENDERING
 #include "level.h"
+#include "Engine/util.h"
 
 void RUN()
 {
@@ -42,6 +43,7 @@ void RENDER()
     const VkDeviceSize offsets[] = {0};
 
     VK_TEXTURE("Engine/res/checker.png");
+    VK_TILETEXTURE(3.0f);
     VK_TINT(1.0f, 1.0f, 1.0f, 1.0f);
 
     // Render level geometry
@@ -62,6 +64,7 @@ void RENDER()
             push_constants_textured_t pc;
             glm_mat4_copy(vp, pc.mvp);
             glm_vec4_copy(tint, pc.tint_color);
+            pc.tiling = texture_tiling;
 
             vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.textured_pipeline.pipeline);
 
@@ -84,6 +87,7 @@ void RENDER()
         push_constants_textured_t pc;
         glm_mat4_copy(proj, pc.mvp);
         glm_vec4_copy(tint, pc.tint_color);
+        VK_TILETEXTURE(1.0f);
 
         vkCmdBindPipeline(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.text_pipeline.pipeline);
         vkCmdBindDescriptorSets(state.v.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, state.v.text_pipeline.layout, 0, 1, &font_descriptor_set, 0, NULL);

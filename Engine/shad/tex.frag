@@ -9,6 +9,7 @@ layout(set = 0, binding = 0) uniform sampler2D texSampler;
 layout(push_constant) uniform PushConstants {
     mat4 mvp;
     vec4 tint_color;
+    float tiling;
 } pc;
 
 void main()

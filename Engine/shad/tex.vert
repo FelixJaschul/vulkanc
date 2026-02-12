@@ -10,11 +10,12 @@ layout(location = 1) out vec4 frag_color;
 layout(push_constant) uniform PushConstants {
     mat4 mvp;
     vec4 tint_color;
+    float tiling;
 } pc;
 
 void main()
 {
     gl_Position = pc.mvp * vec4(in_pos, 1.0);
-    frag_uv = in_uv;
+    frag_uv = in_uv * pc.tiling;
     frag_color = in_color;
 }
