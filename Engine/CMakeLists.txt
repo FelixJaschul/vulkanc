@@ -4,13 +4,20 @@ project(Engine LANGUAGES C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_OSX_ARCHITECTURES "arm64")
 
-# Vulkan SDK setup
-set(VULKAN_SDK_ROOT "/Users/felixjaschul/VulkanSDK/1.4.335.1/macOS")
-set(Vulkan_INCLUDE_DIR ${VULKAN_SDK_ROOT}/include)
-set(Vulkan_LIBRARY ${VULKAN_SDK_ROOT}/lib/libvulkan.dylib)
+# Vulkan SDK
+find_package(Vulkan REQUIRED)
 
-# Find GLFW
-find_package(glfw3 REQUIRED)
+# Vendored dependencies
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Vendor/glfw ${CMAKE_CURRENT_BINARY_DIR}/glfw)
+
+set(CGLM_STATIC ON CACHE BOOL "Static cglm build" FORCE)
+set(CGLM_SHARED OFF CACHE BOOL "Disable shared cglm build" FORCE)
+set(CGLM_USE_TEST OFF CACHE BOOL "" FORCE)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Vendor/cglm ${CMAKE_CURRENT_BINARY_DIR}/cglm)
 
 # Engine source files
 set(ENGINE_SOURCES
@@ -22,22 +29,20 @@ add_library(Engine STATIC ${ENGINE_SOURCES})
 
 # Public include directories
 # - Engine/Include contains the public headers (App.h, etc.)
-# - Parent directory (..) allows including "Engine/Include/Core.h" from app code
 target_include_directories(Engine
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/Include
         ${CMAKE_CURRENT_SOURCE_DIR}/..
         PRIVATE
-        ${Vulkan_INCLUDE_DIR}
-        /opt/homebrew/include
+        ${Vulkan_INCLUDE_DIRS}
 )
 
 # Link dependencies (PUBLIC so they propagate to executables)
 target_link_libraries(Engine
         PUBLIC
-        ${Vulkan_LIBRARY}
+        Vulkan::Vulkan
         glfw
-        /opt/homebrew/lib/libcglm.dylib
+        cglm
 )
 
 # Add math library on Unix

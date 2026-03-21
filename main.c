@@ -21,11 +21,10 @@ void RUN()
     state.cam.yaw = 0.0f;
     state.current_sector = level_find_player_sector(&state.levels[state.level_id], state.cam.x, state.cam.z);
 
-    float old_x = 0.0f, old_z = 0.0f;
     while (VK_FRAME())
     {
-        old_x = state.cam.x;
-        old_z = state.cam.z;
+        const float old_x = state.cam.x;
+        const float old_z = state.cam.z;
         level_check_collision(&state.levels[state.level_id], &state.cam.x, &state.cam.z, old_x, old_z);
         state.current_sector = level_find_player_sector(&state.levels[state.level_id], state.cam.x, state.cam.z);
 
@@ -38,8 +37,8 @@ void RUN()
         VK_DRAWTEXTF(-0.9f, 0.6f, "Level:%d", state.level_id);
     }
 
-    VK_END();
-    for (int i = 0; i < state.level_count; i++) level_cleanup(&state.levels[i]);
+#define END() do { VK_END(); for (int i = 0; i < state.level_count; i++) level_cleanup(&state.levels[i]); } while (0)
+    END();
 }
 
 
@@ -101,6 +100,7 @@ void RENDER()
 
 void INPUT()
 {
+    if (glfwGetKey(state.glfw.win, GLFW_KEY_ESCAPE) == GLFW_PRESS) END();
     const float cam_speed = CAM * state.delta_time;
     const float rot_speed = ROT * state.delta_time;
 

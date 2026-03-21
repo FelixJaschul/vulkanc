@@ -1,0 +1,6 @@
+[submodule "Vendor/cglm"]
+	path = Vendor/cglm
+	url = https://github.com/recp/cglm
+[submodule "Vendor/glfw"]
+	path = Vendor/glfw
+	url = https://github.com/glfw/glfw
