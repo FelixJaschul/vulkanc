@@ -1,5 +1,6 @@
 #### VULKAN HELL YEAH
-
+- please just take a look at my openGL try (cleaner easier better idk): https://github.com/FelixJaschul/openglc.git
+- 
 #### THIS IS IT:
 
 ![Alt text](Engine/res/GAME.png)
@@ -11,7 +12,7 @@ compile shader with `make shaders` (requires `glslangValidator`).
 - this was scary to get even working
 
 #### Setup
-1. Install the Vulkan SDK for your platform (macOS users should install the SDK with MoltenVK).
+1. Install the Vulkan SDK for your platform
 2. Pull vendored deps:
    `git submodule update --init --recursive`
 3. Build and run:
